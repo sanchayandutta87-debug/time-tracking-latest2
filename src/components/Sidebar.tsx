@@ -11,6 +11,9 @@ import {
 export default function Sidebar({ currentView, onViewChange }: { currentView: string, onViewChange: (view: string) => void }) {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isBaseUIOpen, setIsBaseUIOpen] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+
+  const isDashboardActive = currentView === 'admin-dashboard' || currentView === 'user-dashboard';
 
   const reportSubItems = [
     { label: 'Reports', view: 'report-main' },
@@ -67,12 +70,38 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
       <div className="p-4">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Main</p>
         <nav className="space-y-1">
-          <div className="flex items-center justify-between p-2 text-gray-600 hover:bg-gray-50 rounded-lg cursor-pointer">
-            <div className="flex items-center gap-3">
-              <LayoutDashboard size={18} />
-              <span className="text-sm font-medium">Dashboard</span>
+          <div className="mt-1">
+            <div 
+              onClick={() => setIsDashboardOpen(!isDashboardOpen)}
+              className={`flex items-center justify-between p-2 rounded-lg cursor-pointer ${isDashboardActive || isDashboardOpen ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              <div className="flex items-center gap-3">
+                <LayoutDashboard size={18} />
+                <span className="text-sm font-medium">Dashboard</span>
+              </div>
+              {isDashboardOpen || isDashboardActive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </div>
-            <ChevronRight size={14} />
+            
+            {(isDashboardOpen || isDashboardActive) && (
+              <div className="ml-4 mt-1 space-y-1 border-l-2 border-gray-100">
+                <div 
+                  onClick={() => onViewChange('admin-dashboard')}
+                  className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative ${currentView === 'admin-dashboard' ? 'text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  {currentView === 'admin-dashboard' && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-600 rounded-full" />}
+                  <span className={`${currentView === 'admin-dashboard' ? 'text-blue-600' : 'text-gray-300'} font-bold mr-1`}>−</span>
+                  <span className="text-sm">Admin Dashboard</span>
+                </div>
+                <div 
+                  onClick={() => onViewChange('user-dashboard')}
+                  className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative ${currentView === 'user-dashboard' ? 'text-blue-600 font-medium' : 'text-gray-500 hover:text-gray-700'}`}
+                >
+                  {currentView === 'user-dashboard' && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-600 rounded-full" />}
+                  <span className={`${currentView === 'user-dashboard' ? 'text-blue-600' : 'text-gray-300'} font-bold mr-1`}>−</span>
+                  <span className="text-sm">User Dashboard</span>
+                </div>
+              </div>
+            )}
           </div>
           
           <div className="mt-4">
@@ -91,13 +120,6 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
               <NavItem label="Invoices" active={currentView === 'invoices'} onClick={() => onViewChange('invoices')} />
               <NavItem label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} />
               <NavItem label="Notes" active={currentView === 'notes'} onClick={() => onViewChange('notes')} />
-              <NavItem label="To Do" active={currentView === 'todo'} onClick={() => onViewChange('todo')} />
-              <NavItem label="Kanban Board" active={currentView === 'kanban'} onClick={() => onViewChange('kanban')} />
-              <NavItem label="Social Feed" active={currentView === 'social'} onClick={() => onViewChange('social')} />
-              <NavItem label="Email" active={currentView === 'email'} onClick={() => onViewChange('email')} />
-              <NavItem label="Contacts" active={currentView === 'contacts'} onClick={() => onViewChange('contacts')} />
-              <NavItem label="Video Call" active={currentView === 'video-call'} onClick={() => onViewChange('video-call')} />
-              <NavItem label="Voice Call" active={currentView === 'voice-call'} onClick={() => onViewChange('voice-call')} />
             </div>
           </div>
         </nav>

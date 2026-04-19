@@ -12,15 +12,11 @@ import CalendarView from './components/CalendarView';
 import InvoicesView from './components/InvoicesView';
 import FileManagerView from './components/FileManagerView';
 import NotesView from './components/NotesView';
-import TodoView from './components/TodoView';
-import KanbanView from './components/KanbanView';
-import SocialFeedView from './components/SocialFeedView';
-import EmailView from './components/EmailView';
-import ContactsView from './components/ContactsView';
-import VideoCallView from './components/VideoCallView';
-import VoiceCallView from './components/VoiceCallView';
+
+
 import SaasLandingView from './components/SaasLandingView';
 import AdminDashboardView from './components/AdminDashboardView';
+import UserDashboardView from './components/UserDashboardView';
 import LiveTrackingView from './components/LiveTrackingView';
 import TimesheetView from './components/TimesheetView';
 import LeaveView from './components/LeaveView';
@@ -131,7 +127,11 @@ export default function App() {
 
         {/* Main Content Area */}
         <main className={`flex-1 overflow-y-auto ${currentView === 'saas-landing' ? 'p-0' : 'p-8'}`}>
-          {currentView === 'projects' ? (
+          {currentView === 'admin-dashboard' ? (
+            <AdminDashboardView />
+          ) : currentView === 'user-dashboard' ? (
+            <UserDashboardView />
+          ) : currentView === 'projects' ? (
             <ManageProjectsView />
           ) : currentView === 'chat' ? (
             <ChatView />
@@ -143,20 +143,8 @@ export default function App() {
             <FileManagerView />
           ) : currentView === 'notes' ? (
             <NotesView />
-          ) : currentView === 'todo' ? (
-            <TodoView />
-          ) : currentView === 'kanban' ? (
-            <KanbanView />
-          ) : currentView === 'social' ? (
-            <SocialFeedView />
-          ) : currentView === 'email' ? (
-            <EmailView />
-          ) : currentView === 'contacts' ? (
-            <ContactsView />
-          ) : currentView === 'video-call' ? (
-            <VideoCallView />
-          ) : currentView === 'voice-call' ? (
-            <VoiceCallView />
+
+
           ) : currentView === 'saas-landing' ? (
             <SaasLandingView />
           ) : currentView === 'live-tracking' ? (
