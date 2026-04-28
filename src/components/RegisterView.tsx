@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Mail, Eye, EyeOff, User, Briefcase, Chrome, X, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useGoogleLogin } from '@react-oauth/google';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../context/AuthContext';
 
@@ -22,7 +21,7 @@ const RegisterView = ({ onViewChange }: { onViewChange?: (view: string) => void 
         agreeTerms: false
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
@@ -44,63 +43,24 @@ const RegisterView = ({ onViewChange }: { onViewChange?: (view: string) => void 
 
         setIsLoading(true);
         
-        setTimeout(() => {
-            const result = register({
-                fullName: formData.fullName,
-                email: formData.email,
-                password: formData.password,
-                jobTitle: formData.jobTitle,
-            });
-            
-            setIsLoading(false);
-            
-            if (result.success) {
-                setSuccess('Account created successfully! Redirecting...');
-                setTimeout(() => {
-                    if (onViewChange) onViewChange('admin-dashboard');
-                }, 1000);
-            } else {
-                setError(result.error || 'Registration failed.');
-            }
-        }, 800);
+        const result = await register({
+            fullName: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            jobTitle: formData.jobTitle,
+        });
+        
+        setIsLoading(false);
+        
+        if (result.success) {
+            setSuccess('Account created successfully! Redirecting...');
+            setTimeout(() => {
+                if (onViewChange) onViewChange('admin-dashboard');
+            }, 1000);
+        } else {
+            setError(result.error || 'Registration failed.');
+        }
     };
-
-    const handleGoogleSignUp = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
-            setIsLoading(true);
-            setError('');
-            try {
-                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-                });
-                const userInfo = await res.json();
-                
-                const fakeJwt = btoa(JSON.stringify({})) + '.' + btoa(JSON.stringify({
-                    name: userInfo.name,
-                    email: userInfo.email,
-                    picture: userInfo.picture,
-                })) + '.signature';
-                
-                const result = googleLogin(fakeJwt);
-                setIsLoading(false);
-                
-                if (result.success) {
-                    setSuccess(`Welcome, ${userInfo.name}! Redirecting...`);
-                    setTimeout(() => {
-                        if (onViewChange) onViewChange('admin-dashboard');
-                    }, 1000);
-                } else {
-                    setError(result.error || 'Google sign-up failed.');
-                }
-            } catch {
-                setIsLoading(false);
-                setError('Failed to connect to Google. Please try again.');
-            }
-        },
-        onError: () => {
-            setError('Google sign-up was cancelled or failed.');
-        },
-    });
 
     return (
         <AuthLayout 
@@ -237,14 +197,14 @@ const RegisterView = ({ onViewChange }: { onViewChange?: (view: string) => void 
                         <div className="absolute inset-0 flex items-center">
                             <div className="w-full border-t border-gray-200 dark:border-slate-700"></div>
                         </div>
-                        <div className="relative flex justify-center text-xs">
+                        <div className="relative flex justify-center text-sm">
                             <span className="px-2 bg-white dark:bg-slate-900 text-gray-500 uppercase tracking-widest font-bold">Or Sign Up With</span>
                         </div>
                     </div>
 
                     <button 
                         type="button" 
-                        onClick={() => handleGoogleSignUp()}
+                        onClick={() => googleLogin()}
                         disabled={isLoading}
                         className="w-full flex justify-center items-center gap-3 py-3 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all hover:scale-[1.02] disabled:opacity-50"
                     >

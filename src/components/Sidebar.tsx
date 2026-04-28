@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ currentView, onViewChange }: { currentView: string, onViewChange: (view: string) => void }) {
   const { darkMode } = useAppContext();
+  const { isAuthenticated } = useAuth();
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isBaseUIOpen, setIsBaseUIOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -252,16 +254,20 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
           </div>
         </nav>
 
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Authentication</p>
-        <nav className="space-y-1">
-          <div 
-            onClick={() => onViewChange('register')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'register' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <UserPlus size={18} />
-            <span className="text-sm font-medium">Register</span>
-          </div>
-        </nav>
+        {!isAuthenticated && (
+          <>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Authentication</p>
+            <nav className="space-y-1">
+              <div 
+                onClick={() => onViewChange('register')}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'register' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
+              >
+                <UserPlus size={18} />
+                <span className="text-sm font-medium">Register</span>
+              </div>
+            </nav>
+          </>
+        )}
 
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Administrator</p>
         <nav className="space-y-1">

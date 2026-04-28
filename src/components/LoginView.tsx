@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Mail, Eye, EyeOff, Chrome, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useGoogleLogin } from '@react-oauth/google';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../context/AuthContext';
 
@@ -15,63 +14,23 @@ const LoginView = ({ onViewChange }: { onViewChange?: (view: string) => void }) 
         rememberMe: false
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
         
-        // Small delay for UX feel
-        setTimeout(() => {
-            const result = login(formData.email, formData.password);
-            setIsLoading(false);
-            
-            if (result.success) {
-                if (onViewChange) {
-                    const mode = localStorage.getItem('dashboardMode') || 'admin';
-                    onViewChange(mode === 'user' ? 'user-dashboard' : 'admin-dashboard');
-                }
-            } else {
-                setError(result.error || 'Login failed. Please try again.');
+        const result = await login(formData.email, formData.password);
+        setIsLoading(false);
+        
+        if (result.success) {
+            if (onViewChange) {
+                const mode = localStorage.getItem('dashboardMode') || 'admin';
+                onViewChange(mode === 'user' ? 'user-dashboard' : 'admin-dashboard');
             }
-        }, 600);
+        } else {
+            setError(result.error || 'Login failed. Please try again.');
+        }
     };
-
-    const handleGoogleLogin = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
-            setIsLoading(true);
-            setError('');
-            try {
-                // Fetch user info from Google
-                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-                });
-                const userInfo = await res.json();
-                
-                // Build a mock JWT-like payload for our AuthContext
-                const fakeJwt = btoa(JSON.stringify({})) + '.' + btoa(JSON.stringify({
-                    name: userInfo.name,
-                    email: userInfo.email,
-                    picture: userInfo.picture,
-                })) + '.signature';
-                
-                const result = googleLogin(fakeJwt);
-                setIsLoading(false);
-                
-                if (result.success && onViewChange) {
-                    const mode = localStorage.getItem('dashboardMode') || 'admin';
-                    onViewChange(mode === 'user' ? 'user-dashboard' : 'admin-dashboard');
-                } else {
-                    setError(result.error || 'Google login failed.');
-                }
-            } catch {
-                setIsLoading(false);
-                setError('Failed to connect to Google. Please try again.');
-            }
-        },
-        onError: () => {
-            setError('Google sign-in was cancelled or failed.');
-        },
-    });
 
     return (
         <AuthLayout 
@@ -156,7 +115,7 @@ const LoginView = ({ onViewChange }: { onViewChange?: (view: string) => void }) 
 
                 <button 
                     type="button"
-                    onClick={() => handleGoogleLogin()}
+                    onClick={() => googleLogin()}
                     disabled={isLoading}
                     className="w-full flex justify-center items-center gap-3 py-3 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all hover:scale-[1.02] disabled:opacity-50"
                 >
@@ -164,31 +123,8 @@ const LoginView = ({ onViewChange }: { onViewChange?: (view: string) => void }) 
                     <span className="text-sm font-bold dark:text-white">Sign in with Google</span>
                 </button>
 
-                <div className="pt-4 space-y-3">
-                    <p className="text-xs text-center text-gray-400 uppercase font-bold tracking-wider">Quick Login</p>
-                    <div className="flex gap-2">
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setFormData({ email: 'admin@example.com', password: 'admin123', rememberMe: false });
-                                setError('');
-                            }}
-                            className="flex-1 text-xs py-2 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors font-medium"
-                        >
-                            Fill Admin Credentials
-                        </button>
-                        <button 
-                            type="button"
-                            onClick={() => {
-                                setFormData({ email: 'user@example.com', password: 'user123', rememberMe: false });
-                                setError('');
-                            }}
-                            className="flex-1 text-xs py-2 bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-300 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors font-medium"
-                        >
-                            Fill User Credentials
-                        </button>
-                    </div>
-                </div>
+
+
 
                 <div className="text-center mt-6">
                     <p className="text-sm text-gray-500 dark:text-slate-400">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import StatCard from './components/StatCard';
 import ProjectTable from './components/ProjectTable';
@@ -49,8 +50,15 @@ import { useAppContext } from './context/AppContext';
 import { useAuth } from './context/AuthContext';
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [currentView, setCurrentView] = useState(() => {
-    // Restore session on page refresh
+    // 1. Check URL first
+    const path = window.location.pathname.replace('/', '');
+    if (path && path !== '') return path;
+
+    // 2. Restore session on page refresh
     const session = localStorage.getItem('tt_session');
     if (session) {
       const mode = localStorage.getItem('dashboardMode') || 'admin';
@@ -58,8 +66,28 @@ export default function App() {
     }
     return 'login';
   });
+
+  // Sync URL -> currentView
+  useEffect(() => {
+    const path = location.pathname.replace('/', '');
+    if (path && path !== currentView) {
+      setCurrentView(path);
+    } else if (location.pathname === '/' && currentView === 'login') {
+      // Default to login if root and login
+    }
+  }, [location.pathname]);
+
+  // Sync currentView -> URL
+  useEffect(() => {
+    const currentPath = location.pathname.replace('/', '');
+    if (currentView !== currentPath) {
+      navigate(`/${currentView}`, { replace: true });
+    }
+  }, [currentView, navigate]);
+
   const { darkMode, setDarkMode } = useAppContext();
-  const { currentUser, isAuthenticated, logout } = useAuth();
+  const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading } = useAuth();
+
 
   // Header Interactive States
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -136,15 +164,35 @@ export default function App() {
     return 'text-red-500';
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Loading your session...</p>
+          <button 
+            onClick={() => {
+              // Manual override: force loading off
+              setIsLoading(false);
+            }}
+            className="mt-4 text-xs text-gray-400 hover:text-blue-500 underline"
+          >
+            Taking too long? Click here to skip.
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`flex min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-white dark:bg-black text-gray-900 dark:text-white'}`} dir={currentView === 'rtl-support' ? 'rtl' : 'ltr'}>
-      {currentView !== 'hidden-menu' && currentView !== 'full-width' && currentView !== 'rtl-support' && currentView !== 'saas-landing' && currentView !== 'login' && (
+      {currentView !== 'hidden-menu' && currentView !== 'full-width' && currentView !== 'rtl-support' && currentView !== 'saas-landing' && currentView !== 'login' && currentView !== 'register' && (
         <Sidebar currentView={currentView} onViewChange={setCurrentView} />
       )}
       
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Navigation Bar */}
-        {currentView !== 'saas-landing' && (
+        {currentView !== 'saas-landing' && currentView !== 'login' && currentView !== 'register' && (
           <header className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800'} border-b h-16 flex items-center justify-between px-6 shrink-0 transition-colors duration-500 relative z-30`}>
             <div className="flex items-center gap-4 flex-1">
               {(currentView === 'hidden-menu' || currentView === 'full-width' || currentView === 'rtl-support' || currentView === 'dark-mode') && (
@@ -327,10 +375,10 @@ export default function App() {
                       </div>
                       <div className={`p-2 border-t ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
                         <button 
-                          onClick={() => {
+                          onClick={async () => {
                               setIsProfileOpen(false);
                               setActiveSeconds(0);
-                              logout();
+                              await logout();
                               setCurrentView('login');
                           }}
                           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
@@ -462,9 +510,11 @@ export default function App() {
         </main>
         
         {/* Floating Settings Button */}
-        <button className="fixed right-0 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-blue-700 transition-all z-50">
-          <SettingsIcon size={20} className="animate-spin-slow" />
-        </button>
+        {currentView !== 'login' && currentView !== 'register' && currentView !== 'saas-landing' && (
+          <button className="fixed right-0 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-blue-700 transition-all z-50">
+            <SettingsIcon size={20} className="animate-spin-slow" />
+          </button>
+        )}
       </div>
     </div>
   );
