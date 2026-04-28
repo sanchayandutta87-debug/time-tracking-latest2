@@ -14,7 +14,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import AdminDashboardView from './AdminDashboardView';
 
-export default function SaasLandingView() {
+export default function SaasLandingView({ onViewChange }: { onViewChange?: (view: string) => void }) {
   const [activeTab, setActiveTab] = useState('time');
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
@@ -77,9 +77,9 @@ export default function SaasLandingView() {
   ];
 
   return (
-    <div className="flex flex-col h-full bg-white overflow-y-auto font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
+    <div className="flex flex-col h-full bg-white dark:bg-black overflow-y-auto font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 lg:px-12 py-4 sticky top-0 bg-white/90 backdrop-blur-md z-50 border-b border-gray-100">
+      <nav className="flex items-center justify-between px-6 lg:px-12 py-4 sticky top-0 bg-white dark:bg-black/90 backdrop-blur-md z-50 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-100">
             <Clock size={20} />
@@ -89,15 +89,25 @@ export default function SaasLandingView() {
         
         <div className="hidden lg:flex items-center gap-8">
           {['Home', 'Features', 'Demo', 'Pricing', 'Downloads', 'Resources', 'Contact Us'].map((item) => (
-            <a key={item} href="#" className="text-[15px] font-bold text-gray-600 hover:text-blue-600 transition-colors">{item}</a>
+            <a key={item} href="#" className="text-[15px] font-bold text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors">{item}</a>
           ))}
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="px-6 py-2.5 rounded-lg text-[15px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Login</button>
-          <button className="px-6 py-2.5 rounded-lg text-[15px] font-bold text-white bg-black hover:bg-gray-900 transition-all">Start Free Trial</button>
+          <button 
+            onClick={() => onViewChange && onViewChange('login')}
+            className="px-6 py-2.5 rounded-lg text-[15px] font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+          >
+            Login
+          </button>
+          <button 
+            onClick={() => onViewChange && onViewChange('register')}
+            className="px-6 py-2.5 rounded-lg text-[15px] font-bold text-white bg-black hover:bg-black transition-all"
+          >
+            Start Free Trial
+          </button>
           <div className="w-px h-6 bg-gray-200 mx-2 hidden sm:block" />
-          <button className="hidden sm:flex items-center gap-2 px-6 py-2.5 rounded-lg text-[15px] font-bold text-gray-700 border border-gray-200 hover:bg-gray-50 transition-all">
+          <button className="hidden sm:flex items-center gap-2 px-6 py-2.5 rounded-lg text-[15px] font-bold text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-white dark:bg-black transition-all">
             <Calendar size={18} /> Book a Demo
           </button>
         </div>
@@ -111,7 +121,7 @@ export default function SaasLandingView() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-gray-100 shadow-sm text-[#0a0a1a] text-sm font-bold mb-8">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-black border border-gray-100 dark:border-gray-800 shadow-sm text-[#0a0a1a] text-sm font-bold mb-8">
               <span className="text-orange-500">🔥</span> Workforce Productivity Analytics Software
             </div>
             
@@ -119,7 +129,7 @@ export default function SaasLandingView() {
               AI Powered Real-Time Insights <span className="text-orange-500">for Smarter Workflows.</span>
             </h1>
             
-            <p className="text-xl text-gray-500 mb-12 leading-relaxed max-w-xl font-medium">
+            <p className="text-xl text-gray-500 dark:text-gray-400 mb-12 leading-relaxed max-w-xl font-medium">
               Maximize productivity with our intuitive web-based time-tracker perfect for remote work, team management, and tracking billable hours.
             </p>
             
@@ -139,7 +149,7 @@ export default function SaasLandingView() {
                   <div className="flex text-orange-400 mb-0.5">
                     {[1, 2, 3, 4, 5].map((i) => <Star key={i} size={16} fill="currentColor" />)}
                   </div>
-                  <p className="text-[15px] font-bold text-gray-800">5000+ Reviews</p>
+                  <p className="text-[15px] font-bold text-gray-800 dark:text-white">5000+ Reviews</p>
                 </div>
               </div>
             </div>
@@ -151,9 +161,9 @@ export default function SaasLandingView() {
             transition={{ duration: 0.8, ease: "easeOut" }}
             className="relative lg:translate-x-12"
           >
-            <div className="bg-white rounded-3xl shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] border border-gray-100 overflow-hidden transform lg:rotate-[-1deg] flex h-[600px]">
+            <div className="bg-white dark:bg-black rounded-3xl shadow-[0_40px_80px_-15px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-gray-800 overflow-hidden transform lg:rotate-[-1deg] flex h-[600px]">
               {/* Mock Sidebar for Preview */}
-              <div className="w-64 border-r border-gray-100 bg-white p-6 shrink-0 hidden md:block">
+              <div className="w-64 border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-black p-6 shrink-0 hidden md:block">
                 <div className="flex items-center gap-2 mb-10">
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                     <Clock size={18} />
@@ -164,7 +174,7 @@ export default function SaasLandingView() {
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Main</p>
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-blue-50 text-blue-600 rounded-xl font-bold text-sm">
+                      <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl font-bold text-sm">
                         <div className="flex items-center gap-3">
                           <LayoutDashboard size={18} /> Dashboard
                         </div>
@@ -176,57 +186,57 @@ export default function SaasLandingView() {
                       </div>
                     </div>
                     <div className="mt-4 space-y-4 pl-3">
-                      <div className="flex items-center justify-between text-sm font-medium text-gray-500">
+                      <div className="flex items-center justify-between text-sm font-medium text-gray-500 dark:text-gray-400">
                         <div className="flex items-center gap-3"><Box size={18} /> Application</div>
                         <ChevronRight size={14} />
                       </div>
-                      <div className="flex items-center justify-between text-sm font-medium text-gray-500">
+                      <div className="flex items-center justify-between text-sm font-medium text-gray-500 dark:text-gray-400">
                         <div className="flex items-center gap-3"><Layout size={18} /> Layouts</div>
                         <ChevronRight size={14} />
                       </div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Globe size={18} /> Saas Landing</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Globe size={18} /> Saas Landing</div>
                     </div>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Track</p>
                     <div className="space-y-4 pl-3">
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Activity size={18} /> Live Tracking</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><FileText size={18} /> Timesheet</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Calendar size={18} /> Leave</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Users size={18} /> Attendance</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><DollarSign size={18} /> Expense</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Activity size={18} /> Live Tracking</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><FileText size={18} /> Timesheet</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Calendar size={18} /> Leave</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Users size={18} /> Attendance</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><DollarSign size={18} /> Expense</div>
                     </div>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Manage</p>
                     <div className="space-y-4 pl-3">
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Box size={18} /> Projects</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><List size={18} /> Tasks</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Monitor size={18} /> Screenshots</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Clock size={18} /> Edit Time</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><TrendingUp size={18} /> Download</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Box size={18} /> Projects</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><List size={18} /> Tasks</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Monitor size={18} /> Screenshots</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Clock size={18} /> Edit Time</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><TrendingUp size={18} /> Download</div>
                     </div>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">Workforce</p>
                     <div className="space-y-4 pl-3">
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Users size={18} /> Employees</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Users size={18} /> Teams</div>
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500"><Users size={18} /> Clients</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Users size={18} /> Employees</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Users size={18} /> Teams</div>
+                      <div className="flex items-center gap-3 text-sm font-medium text-gray-500 dark:text-gray-400"><Users size={18} /> Clients</div>
                     </div>
                   </div>
                 </div>
               </div>
               
               {/* Dashboard Content */}
-              <div className="flex-1 overflow-hidden pointer-events-none bg-gray-50">
-                <div className="p-4 border-b border-gray-100 bg-white flex justify-between items-center">
+              <div className="flex-1 overflow-hidden pointer-events-none bg-white dark:bg-black">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-black flex justify-between items-center">
                   <div className="flex items-center gap-6">
                     <Menu size={20} className="text-gray-400" />
                     <div className="relative">
                       <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      <input type="text" placeholder="Search Keyword" className="bg-gray-50 border border-gray-100 rounded-lg py-2 pl-10 pr-20 text-sm w-80" />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-white border border-gray-200 rounded text-[10px] font-bold text-gray-400">
+                      <input type="text" placeholder="Search Keyword" className="bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-lg py-2 pl-10 pr-20 text-sm w-80" />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 px-1.5 py-0.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded text-[10px] font-bold text-gray-400">
                         ctrl + K
                       </div>
                     </div>
@@ -248,7 +258,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* Highlighted Features */}
-      <section className="px-6 lg:px-12 py-24 bg-white">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Features ]</span>
@@ -260,21 +270,21 @@ export default function SaasLandingView() {
               <motion.div 
                 key={i}
                 whileHover={{ y: -10 }}
-                className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden"
+                className="bg-white dark:bg-black p-8 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden"
               >
                 <div className="absolute top-0 left-0 w-full h-1 bg-transparent group-hover:bg-blue-600 transition-all" />
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-8 relative">
+                <div className="w-16 h-16 bg-white dark:bg-black rounded-full flex items-center justify-center mb-8 relative">
                   <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,#fff,rgba(255,255,255,0.6))] -z-10" />
                   {React.cloneElement(feature.icon as React.ReactElement, { size: 32 })}
                 </div>
                 <h3 className="text-xl font-bold text-[#0a0a1a] mb-4">{feature.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{feature.desc}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
 
           {/* Marquee */}
-          <div className="relative flex overflow-x-hidden border-y border-gray-100 py-10">
+          <div className="relative flex overflow-x-hidden border-y border-gray-100 dark:border-gray-800 py-10">
             <div className="animate-marquee whitespace-nowrap flex items-center gap-12">
               {[1, 2, 3].map((_) => (
                 <React.Fragment key={_}>
@@ -298,7 +308,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* All-in-one Section */}
-      <section className="px-6 lg:px-12 py-24 bg-gray-50/50">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Time Tracking Web App ]</span>
@@ -310,25 +320,25 @@ export default function SaasLandingView() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-8 py-3 rounded-lg font-bold text-[15px] transition-all ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white text-gray-600 border border-gray-100 hover:bg-gray-50'}`}
+                className={`px-8 py-3 rounded-lg font-bold text-[15px] transition-all ${activeTab === tab.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-100' : 'bg-white dark:bg-black text-gray-600 dark:text-gray-300 border border-gray-100 dark:border-gray-800 hover:bg-white dark:bg-black'}`}
               >
                 {tab.label}
               </button>
             ))}
           </div>
 
-          <div className="bg-white rounded-[32px] p-8 lg:p-12 border border-gray-100 shadow-xl grid lg:grid-cols-2 gap-12 items-center">
+          <div className="bg-white dark:bg-black rounded-[32px] p-8 lg:p-12 border border-gray-100 dark:border-gray-800 shadow-xl grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div>
                 <h3 className="text-3xl font-black text-[#0a0a1a] mb-4">Time & Track</h3>
-                <p className="text-gray-500 leading-relaxed">Increased workload visibility enables you to boost productivity to 90%+ by eliminating roadblocks and creating more focus time.</p>
+                <p className="text-gray-500 dark:text-gray-400 leading-relaxed">Increased workload visibility enables you to boost productivity to 90%+ by eliminating roadblocks and creating more focus time.</p>
               </div>
               
               <div className="space-y-6">
                 {[
                   { icon: <Zap className="text-pink-500" />, title: 'Live Tracking', desc: 'Real-Time Monitoring for Maximum Productivity', bg: 'bg-pink-50' },
-                  { icon: <FileText className="text-emerald-500" />, title: 'Timesheet', desc: 'Effortless Timesheet Management for Accurate Payroll', bg: 'bg-emerald-50' },
-                  { icon: <ArrowRight className="text-blue-500" />, title: 'Leave', desc: 'Simplify Employee Leave Requests and Approvals', bg: 'bg-blue-50' },
+                  { icon: <FileText className="text-emerald-500" />, title: 'Timesheet', desc: 'Effortless Timesheet Management for Accurate Payroll', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+                  { icon: <ArrowRight className="text-blue-500" />, title: 'Leave', desc: 'Simplify Employee Leave Requests and Approvals', bg: 'bg-blue-50 dark:bg-blue-900/20' },
                   { icon: <Users className="text-orange-500" />, title: 'Attendance', desc: 'Real-Time Attendance Insights at Your Fingertips', bg: 'bg-orange-50' },
                   { icon: <DollarSign className="text-purple-500" />, title: 'Expense', desc: 'Track, Approve, and Manage Expenses with Ease', bg: 'bg-purple-50' },
                 ].map((item, i) => (
@@ -347,14 +357,14 @@ export default function SaasLandingView() {
 
             <div className="relative">
               <div className="bg-blue-600 rounded-[24px] p-4 shadow-2xl">
-                <div className="bg-white rounded-[16px] overflow-hidden h-[500px]">
+                <div className="bg-white dark:bg-black rounded-[16px] overflow-hidden h-[500px]">
                    <div className="scale-[0.7] origin-top-left w-[140%] h-[140%] pointer-events-none">
                       <AdminDashboardView />
                    </div>
                 </div>
               </div>
               {/* Floating badges */}
-              <div className="absolute -top-6 -right-6 bg-white p-4 rounded-xl shadow-lg border border-gray-100 animate-bounce">
+              <div className="absolute -top-6 -right-6 bg-white dark:bg-black p-4 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 animate-bounce">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center">
                     <TrendingUp size={20} />
@@ -390,7 +400,7 @@ export default function SaasLandingView() {
                     </div>
                     <h4 className="font-bold text-white">{report.title}</h4>
                   </div>
-                  <p className="text-gray-500 text-sm leading-relaxed">{report.desc}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{report.desc}</p>
                 </div>
               ))}
             </div>
@@ -410,13 +420,13 @@ export default function SaasLandingView() {
       </section>
 
       {/* Integrations */}
-      <section className="px-6 lg:px-12 py-24 bg-white relative overflow-hidden">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black relative overflow-hidden">
         <div className="max-w-7xl mx-auto text-center">
           <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Integrations ]</span>
           <h2 className="text-4xl font-black text-[#0a0a1a] mb-20">Effortlessly Integrate with Your Favorite Tools</h2>
           
           <div className="relative max-w-5xl mx-auto">
-            <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 p-4 overflow-hidden">
+            <div className="bg-white dark:bg-black rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 p-4 overflow-hidden">
               <div className="h-[600px] scale-[0.8] origin-top pointer-events-none">
                 <AdminDashboardView />
               </div>
@@ -426,7 +436,7 @@ export default function SaasLandingView() {
             {[
               { icon: 'B', top: '20%', left: '-10%', bg: 'bg-black text-white' },
               { icon: 'K', top: '45%', left: '-8%', bg: 'bg-pink-100 text-pink-600' },
-              { icon: 'S', top: '10%', right: '-5%', bg: 'bg-blue-50 text-blue-600' },
+              { icon: 'S', top: '10%', right: '-5%', bg: 'bg-blue-50 dark:bg-blue-900/20 text-blue-600' },
               { icon: 'C', top: '35%', right: '-10%', bg: 'bg-blue-600 text-white' },
               { icon: 'Z', top: '65%', right: '-8%', bg: 'bg-blue-500 text-white' },
             ].map((item, i) => (
@@ -451,16 +461,16 @@ export default function SaasLandingView() {
       </section>
 
       {/* Advanced Modules */}
-      <section className="px-6 lg:px-12 py-24 bg-blue-50/30">
+      <section className="px-6 lg:px-12 py-24 bg-blue-50 dark:bg-blue-900/20/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl font-black text-[#0a0a1a] mb-6">Advanced Modules</h2>
-            <p className="text-gray-500">Everything is under your control you can schedule your announcement plan your feeds and create posts with one click Being the right thing in the right time, Connects people, services, and information instantly.</p>
+            <p className="text-gray-500 dark:text-gray-400">Everything is under your control you can schedule your announcement plan your feeds and create posts with one click Being the right thing in the right time, Connects people, services, and information instantly.</p>
           </div>
 
           <div className="flex flex-wrap justify-center gap-4 mb-20">
             {['Clients', 'Projects', 'Insights', 'Screenshots', 'Employees', 'Clients', 'Projects', 'Insights', 'Screenshots'].map((item, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white px-6 py-3 rounded-full border border-gray-100 shadow-sm text-sm font-bold text-gray-700">
+              <div key={i} className="flex items-center gap-2 bg-white dark:bg-black px-6 py-3 rounded-full border border-gray-100 dark:border-gray-800 shadow-sm text-sm font-bold text-gray-700 dark:text-gray-200">
                 <Check size={16} className="text-emerald-500" /> {item}
               </div>
             ))}
@@ -472,7 +482,7 @@ export default function SaasLandingView() {
               <p className="text-xs text-gray-400">Automated savings has changed my life! I\'m saving more than I ever thought possible.</p>
             </div>
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="bg-white p-6 rounded-t-2xl border-x border-t border-gray-100 shadow-lg text-center w-40">
+              <div key={i} className="bg-white dark:bg-black p-6 rounded-t-2xl border-x border-t border-gray-100 dark:border-gray-800 shadow-lg text-center w-40">
                 <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white mx-auto mb-4">G2</div>
                 <p className="text-2xl font-black text-[#0a0a1a]">Leader</p>
                 <p className="text-[10px] font-bold text-white bg-orange-500 px-2 py-1 rounded mt-2 uppercase">Enterprise</p>
@@ -484,7 +494,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* Testimonials */}
-      <section className="px-6 lg:px-12 py-24 bg-white overflow-hidden">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Testimonials ]</span>
@@ -493,7 +503,7 @@ export default function SaasLandingView() {
 
           <div className="flex gap-6 overflow-x-auto pb-12 no-scrollbar">
             {testimonials.map((t, i) => (
-              <div key={i} className="min-w-[350px] bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all">
+              <div key={i} className="min-w-[350px] bg-white dark:bg-black p-8 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all">
                 <div className="flex items-center gap-4 mb-6">
                   <img src={t.avatar} className="w-12 h-12 rounded-full" referrerPolicy="no-referrer" />
                   <div>
@@ -501,7 +511,7 @@ export default function SaasLandingView() {
                     <p className="text-xs text-gray-400 font-medium">{t.role}</p>
                   </div>
                 </div>
-                <p className="text-gray-500 text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6 italic">"{t.text}"</p>
                 <div className="flex text-orange-400">
                   {[1, 2, 3, 4, 5].map((s) => <Star key={s} size={14} fill="currentColor" />)}
                 </div>
@@ -512,7 +522,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* Pricing */}
-      <section className="px-6 lg:px-12 py-24 bg-gray-50/50 relative overflow-hidden">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black/50 relative overflow-hidden">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:60px_60px]" />
         
         <div className="max-w-7xl mx-auto relative z-10">
@@ -522,16 +532,16 @@ export default function SaasLandingView() {
           </div>
 
           <div className="flex justify-center mb-16">
-            <div className="bg-white p-1 rounded-xl border border-gray-100 shadow-sm flex">
+            <div className="bg-white dark:bg-black p-1 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex">
               <button 
                 onClick={() => setBillingCycle('yearly')}
-                className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all ${billingCycle === 'yearly' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all ${billingCycle === 'yearly' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'}`}
               >
                 Yearly
               </button>
               <button 
                 onClick={() => setBillingCycle('monthly')}
-                className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all ${billingCycle === 'monthly' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all ${billingCycle === 'monthly' ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'}`}
               >
                 Monthly
               </button>
@@ -542,7 +552,7 @@ export default function SaasLandingView() {
             {pricingPlans.map((plan, i) => (
               <div 
                 key={i} 
-                className={`bg-white p-8 rounded-3xl border-2 transition-all relative flex flex-col ${plan.popular ? 'border-blue-600 shadow-2xl scale-105 z-10' : 'border-gray-100 shadow-sm hover:shadow-xl'}`}
+                className={`bg-white dark:bg-black p-8 rounded-3xl border-2 transition-all relative flex flex-col ${plan.popular ? 'border-blue-600 shadow-2xl scale-105 z-10' : 'border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl'}`}
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-wider">
@@ -562,14 +572,14 @@ export default function SaasLandingView() {
                   </div>
                 </div>
 
-                <button className={`w-full py-4 rounded-xl font-bold text-sm mb-8 transition-all flex items-center justify-center gap-2 ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100' : 'bg-black text-white hover:bg-gray-900'}`}>
+                <button className={`w-full py-4 rounded-xl font-bold text-sm mb-8 transition-all flex items-center justify-center gap-2 ${plan.popular ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-100' : 'bg-black text-white hover:bg-black'}`}>
                   {plan.name === 'Enterprise' ? <><Phone size={18} /> Contact Us</> : <><Plus size={18} /> Buy Now</>}
                 </button>
 
                 <div className="space-y-4 flex-1">
                   <p className="text-xs font-black text-[#0a0a1a] uppercase tracking-wider">What you get:</p>
                   {plan.features.map((f, j) => (
-                    <div key={j} className="flex items-center gap-3 text-sm text-gray-600">
+                    <div key={j} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-300">
                       <Check size={16} className="text-blue-600 shrink-0" />
                       {f}
                     </div>
@@ -582,7 +592,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* FAQ & Stats */}
-      <section className="px-6 lg:px-12 py-24 bg-white">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center mb-32">
             <div>
@@ -590,7 +600,7 @@ export default function SaasLandingView() {
               <div className="relative rounded-2xl overflow-hidden shadow-2xl group">
                 <img src="https://picsum.photos/seed/team/800/500" className="w-full h-auto group-hover:scale-105 transition-transform duration-700" referrerPolicy="no-referrer" />
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <button className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-2xl hover:scale-110 transition-transform">
+                  <button className="w-20 h-20 bg-white dark:bg-black rounded-full flex items-center justify-center text-blue-600 shadow-2xl hover:scale-110 transition-transform">
                     <Play size={32} fill="currentColor" />
                   </button>
                 </div>
@@ -606,15 +616,15 @@ export default function SaasLandingView() {
                 { q: 'Can I export reports to Excel or PDF?', a: '' },
                 { q: 'How can I contact support?', a: '' },
               ].map((faq, i) => (
-                <div key={i} className={`p-6 rounded-xl border transition-all ${faq.open ? 'border-blue-600 bg-white shadow-lg' : 'border-gray-100 hover:border-gray-200'}`}>
+                <div key={i} className={`p-6 rounded-xl border transition-all ${faq.open ? 'border-blue-600 bg-white dark:bg-black shadow-lg' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:border-gray-700'}`}>
                   <div className="flex justify-between items-center cursor-pointer">
-                    <h4 className={`font-bold ${faq.open ? 'text-[#0a0a1a]' : 'text-gray-700'}`}>{faq.q}</h4>
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${faq.open ? 'bg-blue-600 text-white' : 'text-gray-400 border border-gray-200'}`}>
+                    <h4 className={`font-bold ${faq.open ? 'text-[#0a0a1a]' : 'text-gray-700 dark:text-gray-200'}`}>{faq.q}</h4>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${faq.open ? 'bg-blue-600 text-white' : 'text-gray-400 border border-gray-200 dark:border-gray-700'}`}>
                       {faq.open ? <ChevronRight size={14} className="rotate-90" /> : <ChevronRight size={14} />}
                     </div>
                   </div>
                   {faq.open && faq.a && (
-                    <p className="mt-4 text-sm text-gray-500 leading-relaxed">{faq.a}</p>
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{faq.a}</p>
                   )}
                 </div>
               ))}
@@ -640,7 +650,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* Resources */}
-      <section className="px-6 lg:px-12 py-24 bg-gray-50/30">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black/30">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Resources ]</span>
@@ -648,10 +658,10 @@ export default function SaasLandingView() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative">
-            <button className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-400 hover:text-blue-600 z-10 border border-gray-100">
+            <button className="absolute left-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-white dark:bg-black rounded-full shadow-xl flex items-center justify-center text-gray-400 hover:text-blue-600 z-10 border border-gray-100 dark:border-gray-800">
               <ChevronLeft size={24} />
             </button>
-            <button className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-full shadow-xl flex items-center justify-center text-gray-400 hover:text-blue-600 z-10 border border-gray-100">
+            <button className="absolute right-[-20px] top-1/2 -translate-y-1/2 w-12 h-12 bg-white dark:bg-black rounded-full shadow-xl flex items-center justify-center text-gray-400 hover:text-blue-600 z-10 border border-gray-100 dark:border-gray-800">
               <ChevronRight size={24} />
             </button>
             
@@ -660,7 +670,7 @@ export default function SaasLandingView() {
               { title: 'How Time Tracking Boosts Productivity and Efficiency', author: 'John Mitchell', date: 'August 16, 2025', img: 'https://picsum.photos/seed/blog2/600/400' },
               { title: 'The Best Time Management Techniques for Teams', author: 'John Mitchell', date: 'August 06, 2025', img: 'https://picsum.photos/seed/blog3/600/400' },
             ].map((blog, i) => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+              <div key={i} className="bg-white dark:bg-black rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-xl transition-all group">
                 <div className="h-64 overflow-hidden">
                   <img src={blog.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" referrerPolicy="no-referrer" />
                 </div>
@@ -668,7 +678,7 @@ export default function SaasLandingView() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                       <img src={`https://picsum.photos/seed/${blog.author}/40/40`} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
-                      <span className="text-sm font-bold text-gray-700">{blog.author}</span>
+                      <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{blog.author}</span>
                     </div>
                     <span className="text-sm text-gray-400 font-medium">{blog.date}</span>
                   </div>
@@ -681,7 +691,7 @@ export default function SaasLandingView() {
       </section>
 
       {/* Track UI Section */}
-      <section className="px-6 lg:px-12 py-24 bg-gray-50/50 overflow-hidden">
+      <section className="px-6 lg:px-12 py-24 bg-white dark:bg-black/50 overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <motion.div 
@@ -694,15 +704,15 @@ export default function SaasLandingView() {
               <div className="absolute -top-20 -left-20 w-64 h-64 bg-blue-100 rounded-full blur-3xl opacity-50" />
               <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-pink-100 rounded-full blur-3xl opacity-50" />
               
-              <div className="relative bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-sm mx-auto lg:mx-0">
-                <h3 className="text-xl font-bold text-gray-700 mb-8">Track</h3>
+              <div className="relative bg-white dark:bg-black rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-800 p-8 max-w-sm mx-auto lg:mx-0">
+                <h3 className="text-xl font-bold text-gray-700 dark:text-gray-200 mb-8">Track</h3>
                 <div className="space-y-6">
                   {/* Live Tracking */}
                   <div className="relative group">
                     <div className="absolute -left-8 top-0 bottom-0 w-1 bg-blue-600 rounded-r-full" />
-                    <div className="flex items-center justify-between p-4 bg-blue-50/80 rounded-2xl border border-blue-100/50">
+                    <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/20/80 rounded-2xl border border-blue-100/50">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-blue-600">
+                        <div className="w-10 h-10 bg-white dark:bg-black rounded-xl shadow-sm flex items-center justify-center text-blue-600">
                           <Activity size={20} />
                         </div>
                         <span className="text-lg font-bold text-blue-600">Live Tracking</span>
@@ -715,35 +725,35 @@ export default function SaasLandingView() {
                   </div>
 
                   {/* Timesheet */}
-                  <div className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group">
-                    <div className="w-10 h-10 bg-gray-50 group-hover:bg-white rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
+                  <div className="flex items-center gap-4 p-4 hover:bg-white dark:bg-black rounded-2xl transition-colors cursor-pointer group">
+                    <div className="w-10 h-10 bg-white dark:bg-black group-hover:bg-white dark:bg-black rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
                       <Calendar size={20} />
                     </div>
-                    <span className="text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors">Timesheet</span>
+                    <span className="text-lg font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-white transition-colors">Timesheet</span>
                   </div>
 
                   {/* Leave */}
-                  <div className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group">
-                    <div className="w-10 h-10 bg-gray-50 group-hover:bg-white rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
+                  <div className="flex items-center gap-4 p-4 hover:bg-white dark:bg-black rounded-2xl transition-colors cursor-pointer group">
+                    <div className="w-10 h-10 bg-white dark:bg-black group-hover:bg-white dark:bg-black rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
                       <Umbrella size={20} />
                     </div>
-                    <span className="text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors">Leave</span>
+                    <span className="text-lg font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-white transition-colors">Leave</span>
                   </div>
 
                   {/* Attendance */}
-                  <div className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group">
-                    <div className="w-10 h-10 bg-gray-50 group-hover:bg-white rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
+                  <div className="flex items-center gap-4 p-4 hover:bg-white dark:bg-black rounded-2xl transition-colors cursor-pointer group">
+                    <div className="w-10 h-10 bg-white dark:bg-black group-hover:bg-white dark:bg-black rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
                       <UserCheck size={20} />
                     </div>
-                    <span className="text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors">Attendance</span>
+                    <span className="text-lg font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-white transition-colors">Attendance</span>
                   </div>
 
                   {/* Expense */}
-                  <div className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer group">
-                    <div className="w-10 h-10 bg-gray-50 group-hover:bg-white rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
+                  <div className="flex items-center gap-4 p-4 hover:bg-white dark:bg-black rounded-2xl transition-colors cursor-pointer group">
+                    <div className="w-10 h-10 bg-white dark:bg-black group-hover:bg-white dark:bg-black rounded-xl flex items-center justify-center text-gray-400 group-hover:text-blue-600 transition-all">
                       <Receipt size={20} />
                     </div>
-                    <span className="text-lg font-bold text-gray-600 group-hover:text-gray-900 transition-colors">Expense</span>
+                    <span className="text-lg font-bold text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:text-white transition-colors">Expense</span>
                   </div>
                 </div>
               </div>
@@ -759,7 +769,7 @@ export default function SaasLandingView() {
               <h2 className="text-4xl lg:text-5xl font-black text-[#0a0a1a] mb-8 leading-tight">
                 Complete Visibility into Your <span className="text-blue-600">Workforce</span>
               </h2>
-              <p className="text-gray-500 text-lg leading-relaxed mb-10">
+              <p className="text-gray-500 dark:text-gray-400 text-lg leading-relaxed mb-10">
                 Our advanced tracking suite gives you real-time insights into team activity, project progress, and resource allocation. Stay ahead with automated timesheets and live presence monitoring.
               </p>
               
@@ -775,7 +785,7 @@ export default function SaasLandingView() {
                     </div>
                     <div>
                       <h4 className="font-bold text-[#0a0a1a] mb-1">{item.title}</h4>
-                      <p className="text-gray-500 text-sm">{item.desc}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">{item.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -799,18 +809,18 @@ export default function SaasLandingView() {
                 <input 
                   type="email" 
                   placeholder="Email Address" 
-                  className="w-full bg-white/5 border border-white/10 rounded-lg py-4 px-6 text-white outline-none focus:border-blue-600 transition-all"
+                  className="w-full bg-white dark:bg-black/5 border border-white/10 rounded-lg py-4 px-6 text-white outline-none focus:border-blue-600 transition-all"
                 />
                 <button className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white">
                   <ArrowRight size={20} />
                 </button>
               </div>
-              <p className="mt-6 text-sm text-gray-500 leading-relaxed">By subscribing you agree to with our Privacy Policy and provide consent to receive updates from our company.</p>
+              <p className="mt-6 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">By subscribing you agree to with our Privacy Policy and provide consent to receive updates from our company.</p>
             </div>
 
             <div>
               <h4 className="text-xl font-black text-white mb-8">Company</h4>
-              <ul className="space-y-4 text-gray-500 font-bold">
+              <ul className="space-y-4 text-gray-500 dark:text-gray-400 font-bold">
                 <li><a href="#" className="hover:text-white transition-colors">About</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Customer Success</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Resources</a></li>
@@ -820,7 +830,7 @@ export default function SaasLandingView() {
 
             <div>
               <h4 className="text-xl font-black text-white mb-8">Help</h4>
-              <ul className="space-y-4 text-gray-500 font-bold">
+              <ul className="space-y-4 text-gray-500 dark:text-gray-400 font-bold">
                 <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">FAQ\'s</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Blogs</a></li>
@@ -830,7 +840,7 @@ export default function SaasLandingView() {
 
             <div>
               <h4 className="text-xl font-black text-white mb-8">Useful Links</h4>
-              <ul className="space-y-4 text-gray-500 font-bold">
+              <ul className="space-y-4 text-gray-500 dark:text-gray-400 font-bold">
                 <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Terms of use</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">License</a></li>
@@ -846,7 +856,7 @@ export default function SaasLandingView() {
             <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-[#05050a] to-transparent" />
           </div>
 
-          <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-gray-500 text-sm font-bold border-t border-white/5 pt-12">
+          <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-gray-500 dark:text-gray-400 text-sm font-bold border-t border-white/5 pt-12">
             <p>© 2026 Dreams Timer. All rights reserved.</p>
             <div className="flex items-center gap-8">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>

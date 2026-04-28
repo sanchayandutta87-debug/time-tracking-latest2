@@ -7,22 +7,22 @@ import {
 
 export default function VoiceCallView() {
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
+    <div className="flex flex-col h-full bg-white dark:bg-black overflow-hidden">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 px-6 pt-4 shrink-0">
-        <h1 className="text-xl font-bold text-gray-800">Voice Call</h1>
+        <h1 className="text-xl font-bold text-gray-800 dark:text-white">Voice Call</h1>
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span>Home</span>
           <ChevronRight size={14} />
           <span>Applications</span>
           <ChevronRight size={14} />
-          <span className="text-gray-600">Voice Call</span>
+          <span className="text-gray-600 dark:text-gray-300">Voice Call</span>
         </div>
       </div>
 
       <div className="px-6 flex flex-col gap-6 overflow-y-auto pb-6 relative">
         {/* Main Call Area */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex flex-col">
+        <div className="bg-white dark:bg-black rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden flex flex-col">
           {/* Top Bar */}
           <div className="flex justify-between items-center p-6 border-b border-gray-50">
             <div className="flex items-center gap-4">
@@ -36,11 +36,11 @@ export default function VoiceCallView() {
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full"></div>
               </div>
               <div>
-                <h4 className="font-bold text-gray-800 text-sm">Edward Lietz</h4>
+                <h4 className="font-bold text-gray-800 dark:text-white text-sm">Edward Lietz</h4>
                 <p className="text-xs text-gray-400">+22-555-345-11</p>
               </div>
             </div>
-            <button className="p-2 border border-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors">
+            <button className="p-2 border border-gray-100 dark:border-gray-800 rounded-lg text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors">
               <MoreVertical size={18} />
             </button>
           </div>
@@ -57,7 +57,7 @@ export default function VoiceCallView() {
                 />
               </div>
             </div>
-            <div className="mt-8 text-sm font-bold text-gray-800">
+            <div className="mt-8 text-sm font-bold text-gray-800 dark:text-white">
               01:45
             </div>
 
@@ -76,26 +76,26 @@ export default function VoiceCallView() {
         </div>
 
         {/* Control Bar */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex justify-center items-center gap-4 mb-6 shrink-0">
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+        <div className="bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex justify-center items-center gap-4 mb-6 shrink-0">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Mic size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Video size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <MessageSquare size={20} />
           </button>
           <button className="p-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100">
             <PhoneOff size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Volume2 size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Smile size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Monitor size={20} />
           </button>
         </div>

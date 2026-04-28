@@ -14,16 +14,16 @@ const participants = [
 
 export default function VideoCallView() {
   return (
-    <div className="flex flex-col h-full bg-white overflow-hidden">
+    <div className="flex flex-col h-full bg-white dark:bg-black overflow-hidden">
       {/* Header */}
       <div className="flex justify-between items-center mb-6 px-6 pt-4 shrink-0">
-        <h1 className="text-xl font-bold text-gray-800">Video Call</h1>
+        <h1 className="text-xl font-bold text-gray-800 dark:text-white">Video Call</h1>
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span>Home</span>
           <ChevronRight size={14} />
           <span>Applications</span>
           <ChevronRight size={14} />
-          <span className="text-gray-600">Video Call</span>
+          <span className="text-gray-600 dark:text-gray-300">Video Call</span>
         </div>
       </div>
 
@@ -36,7 +36,7 @@ export default function VideoCallView() {
         </div>
 
         {/* Main Video Area */}
-        <div className="relative rounded-2xl overflow-hidden border border-gray-100 shadow-sm aspect-video bg-gray-900 shrink-0">
+        <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 shadow-sm aspect-video bg-black shrink-0">
           <img 
             src="https://picsum.photos/seed/rachael/1280/720" 
             alt="Main Video" 
@@ -46,15 +46,15 @@ export default function VideoCallView() {
           
           {/* Overlay Info */}
           <div className="absolute top-6 left-6 flex gap-2">
-            <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-gray-800 shadow-sm">
+            <div className="bg-white dark:bg-black/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-gray-800 dark:text-white shadow-sm">
               Rachael Thomas
             </div>
-            <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-gray-800 shadow-sm">
+            <div className="bg-white dark:bg-black/90 backdrop-blur-sm px-3 py-1 rounded-lg text-xs font-bold text-gray-800 dark:text-white shadow-sm">
               01:45
             </div>
           </div>
 
-          <button className="absolute top-6 right-6 p-2 bg-white/90 backdrop-blur-sm rounded-lg text-gray-600 hover:text-gray-900 shadow-sm transition-colors">
+          <button className="absolute top-6 right-6 p-2 bg-white dark:bg-black/90 backdrop-blur-sm rounded-lg text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white shadow-sm transition-colors">
             <Maximize2 size={18} />
           </button>
         </div>
@@ -62,7 +62,7 @@ export default function VideoCallView() {
         {/* Participant Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 shrink-0">
           {participants.map((p) => (
-            <div key={p.id} className={`relative rounded-2xl overflow-hidden aspect-square ${p.color} border border-gray-100 shadow-sm group`}>
+            <div key={p.id} className={`relative rounded-2xl overflow-hidden aspect-square ${p.color} border border-gray-100 dark:border-gray-800 shadow-sm group`}>
               <img 
                 src={p.avatar} 
                 alt={p.name} 
@@ -74,34 +74,34 @@ export default function VideoCallView() {
                   <AudioLines size={20} />
                 </div>
               )}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[90%] bg-white py-2 rounded-lg text-center shadow-sm">
-                <span className="text-xs font-bold text-gray-800">{p.name}</span>
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-[90%] bg-white dark:bg-black py-2 rounded-lg text-center shadow-sm">
+                <span className="text-xs font-bold text-gray-800 dark:text-white">{p.name}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Control Bar */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm flex justify-center items-center gap-4 mb-6 shrink-0">
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+        <div className="bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-2xl p-4 shadow-sm flex justify-center items-center gap-4 mb-6 shrink-0">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Mic size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Video size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <MessageSquare size={20} />
           </button>
           <button className="p-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-100">
             <PhoneOff size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Volume2 size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Smile size={20} />
           </button>
-          <button className="p-3 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200 transition-colors">
+          <button className="p-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300 rounded-xl hover:bg-gray-200 transition-colors">
             <Monitor size={20} />
           </button>
         </div>
