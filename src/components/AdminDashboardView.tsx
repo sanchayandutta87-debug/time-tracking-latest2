@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAppContext } from '../context/AppContext';
+import { supabase } from '../utils/supabase';
 import { 
   ChevronRight, TrendingUp, TrendingDown, UserCheck, 
   UserX, MoreVertical, Plus, Check, X, 
   ExternalLink, Clock, Globe, Monitor, Smartphone,
-  LayoutDashboard, Users, UserPlus, Box, List, Grid, Menu, Bell, Moon
+  LayoutDashboard, Users, UserPlus, Box, List, Grid, Menu, Bell, Moon,
+  Loader2
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, 
@@ -13,120 +16,284 @@ import {
   PieChart, Pie, Cell
 } from 'recharts';
 
-const stats = [
-  { 
-    title: 'Working Hours', 
-    value: '950h 45m', 
-    change: '20%', 
-    trend: 'up', 
-    color: '#3b82f6',
-    data: [
-      { value: 10 }, { value: 15 }, { value: 12 }, 
-      { value: 20 }, { value: 18 }, { value: 25 }, { value: 22 }
-    ]
-  },
-  { 
-    title: 'Production', 
-    value: '400h 22m', 
-    change: '20%', 
-    trend: 'down', 
-    color: '#f97316',
-    data: [
-      { value: 25 }, { value: 20 }, { value: 22 }, 
-      { value: 15 }, { value: 18 }, { value: 12 }, { value: 15 }
-    ]
-  },
-  { 
-    title: 'Unproductive', 
-    value: '50h 25m', 
-    change: '45%', 
-    trend: 'up', 
-    color: '#3b82f6',
-    data: [
-      { value: 10 }, { value: 12 }, { value: 15 }, 
-      { value: 18 }, { value: 20 }, { value: 22 }, { value: 25 }
-    ]
-  },
-  { 
-    title: 'Manual Added', 
-    value: '46h 45m', 
-    change: '22%', 
-    trend: 'up', 
-    color: '#10b981',
-    data: [
-      { value: 15 }, { value: 18 }, { value: 12 }, 
-      { value: 20 }, { value: 22 }, { value: 25 }, { value: 28 }
-    ]
-  },
-];
+export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean }) {
+  const { darkMode: isDarkMode } = useAppContext();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Dynamic States
+  const [stats, setStats] = useState<any[]>([]);
+  const [topMembers, setTopMembers] = useState<any[]>([]);
+  const [requestApproval, setRequestApproval] = useState<any[]>([]);
+  const [projectStatsData, setProjectStatsData] = useState<any[]>([]);
+  const [recentProjects, setRecentProjects] = useState<any[]>([]);
+  const [membersTable, setMembersTable] = useState<any[]>([]);
+  const [projectWorkforce, setProjectWorkforce] = useState<any[]>([]);
+  const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
-const topMembers = [
-  { name: 'Leon Baxter', role: 'Testing', salary: '$6595', avatar: 'https://picsum.photos/seed/leon/40/40' },
-  { name: 'Charles Cline', role: 'Cybersecurity', salary: '$5145', avatar: 'https://picsum.photos/seed/charles/40/40' },
-  { name: 'James Higham', role: 'Mobile App', salary: '$7478', avatar: 'https://picsum.photos/seed/higham/40/40' },
-  { name: 'Thomas Ward', role: 'Design', salary: '$4589', avatar: 'https://picsum.photos/seed/ward/40/40' },
-  { name: 'Aliza Duncan', role: 'Customer Service', salary: '$6987', avatar: 'https://picsum.photos/seed/aliza/40/40' },
-];
+  const fetchDashboardData = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Fetch Projects first
+      const { data: allProjects } = await supabase.from('projects').select('*');
+      const projectsList = allProjects || [];
 
-const radarData = [
-  { subject: '2025', A: 120, B: 110, fullMark: 150 },
-  { subject: '2026', A: 98, B: 130, fullMark: 150 },
-  { subject: '2027', A: 86, B: 130, fullMark: 150 },
-  { subject: '2028', A: 99, B: 100, fullMark: 150 },
-  { subject: '2029', A: 85, B: 90, fullMark: 150 },
-];
+      // 2. Fetch Time Entries with joins
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      
+      const { data: timeEntries } = await supabase
+        .from('time_entries')
+        .select(`
+            *,
+            projects (name),
+            users (
+              full_name, 
+              avatar_url, 
+              teams (name)
+            )
+        `)
+        .gte('start_time', sevenDaysAgo.toISOString());
 
-const requestApproval = [
-  { name: 'Jonathan King', date: '14 Sep 2025', avatar: 'https://picsum.photos/seed/jonathan/40/40' },
-  { name: 'Peter Brooks', date: '28 Aug 2025', avatar: 'https://picsum.photos/seed/peter/40/40' },
-  { name: 'Cindy Mateo', date: '20 Aug 2025', avatar: 'https://picsum.photos/seed/cindy/40/40' },
-  { name: 'Thomas Walsh', date: '10 Aug 2025', avatar: 'https://picsum.photos/seed/walsh/40/40' },
-  { name: 'Eliz Hiltner', date: '25 Jul 2025', avatar: 'https://picsum.photos/seed/eliz/40/40' },
-];
+      const entries = timeEntries || [];
 
-const projectStatsData = [
-  { name: '15 Jan', active: 85, inprogress: 20, completed: 40 },
-  { name: '16 Jan', active: 45, inprogress: 70, completed: 40 },
-  { name: '17 Jan', active: 85, inprogress: 20, completed: 40 },
-  { name: '18 Jan', active: 45, inprogress: 20, completed: 80 },
-  { name: '19 Jan', active: 60, inprogress: 20, completed: 48 },
-  { name: '20 Jan', active: 25, inprogress: 20, completed: 48 },
-  { name: '21 Jan', active: 78, inprogress: 20, completed: 48 },
-];
+      // 3. Stats Calculation
+      const totalSeconds = entries.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
+      const manualSeconds = entries.filter(e => e.is_manual).reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
+      
+      const formatDuration = (sec: number) => {
+        const h = Math.floor(sec / 3600);
+        const m = Math.floor((sec % 3600) / 60);
+        return `${h}h ${m}m`;
+      };
 
-const recentProjects = [
-  { name: 'TaskZen - Productivity', tasks: '08 Tasks', budget: '$3500', icon: 'TZ', color: 'bg-blue-100 text-blue-600' },
-  { name: 'FlowSpark - Workflow tools', tasks: '32 Tasks', budget: '$8966', icon: 'FS', color: 'bg-orange-100 text-orange-600' },
-  { name: 'Corelytics - Data tools', tasks: '56 Tasks', budget: '$7896', icon: 'CL', color: 'bg-pink-100 text-pink-600', extra: '+1' },
-  { name: 'CodePulse - Cloud tools', tasks: '40 Tasks', budget: '$4124', icon: 'CP', color: 'bg-emerald-100 text-emerald-600' },
-  { name: 'Office Management', tasks: '48 Tasks', budget: '$4578', icon: 'PD', color: 'bg-purple-100 text-purple-600' },
-];
+      setStats([
+        { title: 'Working Hours', value: formatDuration(totalSeconds), change: 'Live', trend: 'up', color: '#3b82f6', data: [ { value: 10 }, { value: 15 }, { value: 12 }, { value: 20 }, { value: 18 }, { value: 25 }, { value: 22 } ] },
+        { title: 'Production', value: formatDuration(totalSeconds - manualSeconds), change: 'Live', trend: 'up', color: '#f97316', data: [ { value: 25 }, { value: 20 }, { value: 22 }, { value: 15 }, { value: 18 }, { value: 12 }, { value: 15 } ] },
+        { title: 'Unproductive', value: '0h 0m', change: '0%', trend: 'down', color: '#3b82f6', data: [ { value: 10 }, { value: 12 }, { value: 15 }, { value: 18 }, { value: 20 }, { value: 22 }, { value: 25 } ] },
+        { title: 'Manual Added', value: formatDuration(manualSeconds), change: 'Live', trend: 'up', color: '#10b981', data: [ { value: 15 }, { value: 18 }, { value: 12 }, { value: 20 }, { value: 22 }, { value: 25 }, { value: 28 } ] },
+      ]);
 
-const topTeams = [
-  { name: 'UX Research', hours: '312h', productivity: '97%', icon: 'UR', color: 'bg-purple-100 text-purple-600' },
-  { name: 'Testing', hours: '287h', productivity: '94%', icon: 'TS', color: 'bg-orange-100 text-orange-600' },
-  { name: 'Design', hours: '243h', productivity: '92%', icon: 'DN', color: 'bg-emerald-100 text-emerald-600' },
-  { name: 'DevOps', hours: '259h', productivity: '91%', icon: 'DO', color: 'bg-pink-100 text-pink-600' },
-  { name: 'IT Support', hours: '243h', productivity: '88%', icon: 'IT', color: 'bg-orange-100 text-orange-600' },
-];
+      // 4. Project Statistics
+      const activeCount = projectsList.filter(p => p.status === 'active' || p.status === 'in_progress' || !p.status).length;
+      const onHoldCount = projectsList.filter(p => p.status === 'on_hold').length;
+      const completedCount = projectsList.filter(p => p.status === 'completed').length;
 
-const webAppUsage = [
-  { name: 'Figma', category: 'Design', hours: '36h 40m', progress: 80, color: 'bg-emerald-500' },
-  { name: 'Google', category: 'Browser', hours: '24h 40m', progress: 60, color: 'bg-purple-500' },
-  { name: 'Adobe illustrator', category: 'Design', hours: '20h 40m', progress: 40, color: 'bg-orange-500' },
-  { name: 'Slack', category: 'Communication', hours: '22h 40m', progress: 35, color: 'bg-blue-500' },
-  { name: 'Teams', category: 'Communication', hours: '18h 40m', progress: 30, color: 'bg-yellow-500' },
-];
+      setProjectStatsData([
+        { name: 'Overview', active: activeCount, inprogress: onHoldCount, completed: completedCount }
+      ]);
 
-const membersTable = [
-  { name: 'Shaun Farley', role: 'Usability Specialist', email: 'shaunfarley@example.com', phone: '+1 578 209 4965', experience: '2 years', location: 'Remote', status: 'Active', avatar: 'https://picsum.photos/seed/shaun/40/40' },
-  { name: 'Jenny Ellis', role: 'DevOps', email: 'jenny@example.com', phone: '+1 278 301 7284', experience: '5 years', location: 'Office', status: 'Active', avatar: 'https://picsum.photos/seed/jenny/40/40' },
-  { name: 'Aliza Duncan', role: 'Data & Analytics', email: 'aliza@example.com', phone: '+1 702 555 0189', experience: '3 years', location: 'Office', status: 'Active', avatar: 'https://picsum.photos/seed/aliza2/40/40' },
-  { name: 'Leslie Hensley', role: 'IT Support', email: 'leslie@example.com', phone: '+1 617 555 0134', experience: '9 years', location: 'Remote', status: 'Inactive', avatar: 'https://picsum.photos/seed/leslie/40/40' },
-  { name: 'Karen Galvan', role: 'Networking', email: 'karen@example.com', phone: '+1 832 555 0166', experience: '6 years', location: 'Office', status: 'Inactive', avatar: 'https://picsum.photos/seed/karen/40/40' },
-];
+      setRecentProjects(projectsList.slice(0, 5).map(p => ({ 
+        id: p.id,
+        name: p.name, 
+        budget: `$${p.budget || 0}`, 
+        icon: p.name.substring(0, 2).toUpperCase(), 
+        color: 'bg-blue-100 text-blue-600' 
+      })));
 
-export default function AdminDashboardView({ isRTL = false, isDarkMode = false }: { isRTL?: boolean, isDarkMode?: boolean }) {
+      // 5. Aggregate Project Workforce
+      const pWorkforceMap: any = {};
+      
+      // Initialize with all projects using ID as key
+      projectsList.forEach(p => {
+        pWorkforceMap[p.id] = { name: p.name, members: {} };
+      });
+      pWorkforceMap['internal'] = { name: 'Internal', members: {} };
+
+      entries.forEach((e: any) => {
+        const projData = Array.isArray(e.projects) ? e.projects[0] : e.projects;
+        const userData = Array.isArray(e.users) ? e.users[0] : e.users;
+        const teamData = userData ? (Array.isArray(userData.teams) ? userData.teams[0] : userData.teams) : null;
+
+        const pId = e.project_id || 'internal';
+        const uName = userData?.full_name || 'Unknown';
+        const tName = teamData?.name || 'No Team';
+        
+        // Ensure the project entry exists (in case project_id is missing from allProjects fetch)
+        if (!pWorkforceMap[pId]) {
+          pWorkforceMap[pId] = { name: projData?.name || 'Internal', members: {} };
+        }
+        
+        if (!pWorkforceMap[pId].members[uName]) {
+          pWorkforceMap[pId].members[uName] = { 
+            time: 0, 
+            avatar: userData?.avatar_url, 
+            team: tName,
+            startDate: e.start_time 
+          };
+        } else {
+          if (new Date(e.start_time) < new Date(pWorkforceMap[pId].members[uName].startDate)) {
+            pWorkforceMap[pId].members[uName].startDate = e.start_time;
+          }
+        }
+        pWorkforceMap[pId].members[uName].time += (e.duration_seconds || 0);
+      });
+
+      const formattedWorkforce = Object.values(pWorkforceMap)
+        .map((data: any) => ({
+          projectName: data.name,
+          members: Object.entries(data.members).map(([uName, mData]: [string, any]) => ({
+            name: uName,
+            time: formatDuration(mData.time),
+            team: mData.team,
+            avatar: mData.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(uName)}&background=random`,
+            startDate: new Date(mData.startDate).toLocaleDateString()
+          }))
+        }))
+        .filter(pw => pw.projectName !== 'Internal' || pw.members.length > 0)
+        .sort((a, b) => b.members.length - a.members.length);
+      
+      setProjectWorkforce(formattedWorkforce);
+
+      // 6. Users Table & Top Members
+      const { data: usersData } = await supabase.from('users').select('*');
+      const allUsers = usersData || [];
+      const now = new Date();
+
+      // Fetch currently active entries for "Tracking Now" status
+      const { data: currentActive } = await supabase
+        .from('time_entries')
+        .select('user_id')
+        .is('end_time', null);
+      
+      const activeUserIds = new Set((currentActive || []).map(e => e.user_id));
+
+      setTopMembers(allUsers.map(user => ({
+        name: user.full_name,
+        role: user.job_title || 'Employee',
+        salary: `$${Math.floor(Math.random() * 5000) + 3000}`,
+        avatar: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=random`,
+        totalTime: entries.filter(e => e.user_id === user.id).reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0)
+      })).sort((a, b) => b.totalTime - a.totalTime).slice(0, 5));
+
+      setMembersTable(allUsers.slice(0, 10).map(u => {
+        const lastSeen = u.last_seen ? new Date(u.last_seen) : null;
+        const diffMinutes = lastSeen ? (now.getTime() - lastSeen.getTime()) / (1000 * 60) : 999;
+        const isTracking = activeUserIds.has(u.id);
+        const status = isTracking ? 'Tracking Now' : (diffMinutes < 15 ? 'Active' : 'Offline');
+        
+        return {
+          id: u.id,
+          name: u.full_name,
+          role: u.job_title || 'N/A',
+          email: u.email,
+          phone: u.phone || 'N/A',
+          status: status,
+          isTracking: isTracking,
+          avatar: u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name)}&background=random`
+        };
+      }));
+
+      // 7. Request Approval (Leave Requests + Manual Time)
+      const { data: leaveRequests } = await supabase
+        .from('leave_requests')
+        .select('*, users(full_name, avatar_url)')
+        .eq('status', 'pending')
+        .limit(5);
+
+      const { data: manualEntries, error: manualError } = await supabase
+        .from('time_entries')
+        .select('*, users(full_name, avatar_url)')
+        .eq('is_manual', true)
+        .eq('status', 'pending')
+        .limit(5);
+      
+      if (manualError) {
+        console.warn('Manual entries status column missing or query failed:', manualError.message);
+      }
+      
+      const allReqs = [
+        ...(leaveRequests || []).map(r => ({ 
+          id: r.id, 
+          type: 'leave', 
+          category: r.type, 
+          name: r.users?.full_name, 
+          date: new Date(r.start_date).toLocaleDateString(), 
+          avatar: r.users?.avatar_url 
+        })),
+        ...(manualEntries || []).map(e => ({ 
+          id: e.id, 
+          type: 'manual_time', 
+          category: 'Manual Time', 
+          name: e.users?.full_name, 
+          date: new Date(e.start_time).toLocaleDateString(), 
+          avatar: e.users?.avatar_url 
+        }))
+      ].slice(0, 5);
+      setRequestApproval(allReqs);
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+    
+    // Real-time subscription
+    const channel = supabase.channel('dashboard-updates')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'time_entries' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, fetchDashboardData)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'bg-[#0a0a1a] text-white' : 'bg-gray-50 text-gray-800'}`}>
+        <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
+        <p className="text-lg font-bold animate-pulse">Synchronizing Dashboard...</p>
+      </div>
+    );
+  }
+
+  const radarData = [
+    { subject: '2025', A: 120, B: 110, fullMark: 150 },
+    { subject: '2026', A: 98, B: 130, fullMark: 150 },
+    { subject: '2027', A: 86, B: 130, fullMark: 150 },
+    { subject: '2028', A: 99, B: 100, fullMark: 150 },
+    { subject: '2029', A: 85, B: 90, fullMark: 150 },
+  ];
+
+  const topTeams = [
+    { name: 'UX Research', hours: '312h', productivity: '97%', icon: 'UR', color: 'bg-purple-100 text-purple-600' },
+    { name: 'Testing', hours: '287h', productivity: '94%', icon: 'TS', color: 'bg-orange-100 text-orange-600' },
+    { name: 'Design', hours: '243h', productivity: '92%', icon: 'DN', color: 'bg-emerald-100 text-emerald-600' },
+    { name: 'DevOps', hours: '259h', productivity: '91%', icon: 'DO', color: 'bg-pink-100 text-pink-600' },
+    { name: 'IT Support', hours: '243h', productivity: '88%', icon: 'IT', color: 'bg-orange-100 text-orange-600' },
+  ];
+
+  const handleAction = async (id: string, type: 'leave' | 'manual_time', action: 'approved' | 'rejected') => {
+    try {
+      const table = type === 'leave' ? 'leave_requests' : 'time_entries';
+      console.log(`Attempting to ${action} ${type} request with ID: ${id}`);
+
+      const { error } = await supabase
+        .from(table)
+        .update({ status: action })
+        .eq('id', id);
+
+      if (error) {
+        console.error(`Supabase error during ${action}:`, error);
+        throw error;
+      }
+
+      console.log(`Successfully ${action} ${type} request`);
+      await fetchDashboardData(); // Refresh local state
+      
+      // Provide immediate visual feedback via a small notification would be better, 
+      // but for now we'll stick to basic alerts or just let the refresh handle it.
+    } catch (error: any) {
+      console.error(`Detailed error during ${action} request:`, error);
+      alert(`Action Failed: ${error.message || 'Unknown error'}. Please ensure the database schema is updated.`);
+    }
+  };
+
   return (
     <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-[#0a0a1a]' : 'bg-gray-50'}`}>
       {/* Header */}
@@ -190,7 +357,7 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
               {topMembers.map((member, i) => (
                 <div key={i} className="flex justify-between items-center">
                   <div className="flex gap-3">
-                    <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />
+                    <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
                     <div>
                       <h4 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{member.name}</h4>
                       <p className="text-[10px] text-gray-400 font-medium">{member.role}</p>
@@ -235,25 +402,40 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
           <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Request Approval</h3>
             <div className="space-y-6">
-              {requestApproval.map((req, i) => (
+              {requestApproval.length > 0 ? requestApproval.map((req, i) => (
                 <div key={i} className="flex justify-between items-center">
                   <div className="flex gap-3">
-                    <img src={req.avatar} alt={req.name} className="w-10 h-10 rounded-full" referrerPolicy="no-referrer" />
+                    <img src={req.avatar} alt={req.name} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
                     <div>
-                      <h4 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{req.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{req.name}</h4>
+                        <span className={`px-1.5 py-0.5 rounded-[4px] text-[8px] font-black uppercase tracking-tighter ${req.type === 'leave' ? 'bg-purple-500/10 text-purple-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                          {req.category}
+                        </span>
+                      </div>
                       <p className="text-[10px] text-gray-400 font-medium">{req.date}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button className={`p-1.5 rounded-lg transition-all ${isDarkMode ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white' : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-500 hover:text-white'}`}>
+                    <button 
+                      onClick={() => handleAction(req.id, req.type, 'approved')}
+                      className={`p-1.5 rounded-lg transition-all ${isDarkMode ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white' : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-500 hover:text-white'}`}
+                    >
                       <Check size={14} />
                     </button>
-                    <button className={`p-1.5 rounded-lg transition-all ${isDarkMode ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-500 hover:bg-red-500 hover:text-white'}`}>
+                    <button 
+                      onClick={() => handleAction(req.id, req.type, 'rejected')}
+                      className={`p-1.5 rounded-lg transition-all ${isDarkMode ? 'bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white' : 'bg-red-50 text-red-500 hover:bg-red-500 hover:text-white'}`}
+                    >
                       <X size={14} />
                     </button>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div className="text-center py-10">
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">No pending requests</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -271,7 +453,7 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-gray-400" />
-                  <span className="text-[10px] font-medium text-gray-400">Inprogress</span>
+                  <span className="text-[10px] font-medium text-gray-400">On Hold</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
@@ -299,7 +481,11 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Recent Projects</h3>
             <div className="space-y-6">
               {recentProjects.map((project, i) => (
-                <div key={i} className="flex justify-between items-center">
+                <div 
+                  key={i} 
+                  onClick={() => setSelectedProject(projectWorkforce.find(pw => pw.projectName === project.name) || { projectName: project.name, members: [] })}
+                  className={`flex justify-between items-center p-3 rounded-xl cursor-pointer transition-all ${isDarkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}`}
+                >
                   <div className="flex gap-3">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs ${isDarkMode ? 'bg-gray-800/50' : project.color}`}>
                       <span className={isDarkMode ? project.color.split(' ')[1] : ''}>{project.icon}</span>
@@ -307,22 +493,23 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
                     <div>
                       <h4 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{project.name}</h4>
                       <p className="text-[10px] text-gray-400 font-medium flex items-center gap-1">
-                        <List size={10} /> {project.tasks} | <Box size={10} /> {project.budget}
+                        <Box size={10} /> {project.budget}
                       </p>
                     </div>
                   </div>
                   <div className="flex -space-x-2">
-                    {[1, 2, 3].map((n) => (
+                    {(projectWorkforce.find(pw => pw.projectName === project.name)?.members || []).slice(0, 3).map((member: any, i: number) => (
                       <img 
-                        key={n} 
-                        src={`https://picsum.photos/seed/p${i}${n}/24/24`} 
-                        className={`w-6 h-6 rounded-full border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'}`} 
+                        key={i} 
+                        src={member.avatar} 
+                        alt={member.name}
+                        className={`w-6 h-6 rounded-full border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'} object-cover`} 
                         referrerPolicy="no-referrer" 
                       />
                     ))}
-                    {project.extra && (
+                    {(projectWorkforce.find(pw => pw.projectName === project.name)?.members || []).length > 3 && (
                       <div className={`w-6 h-6 rounded-full bg-blue-600 border-2 flex items-center justify-center text-[8px] font-bold text-white ${isDarkMode ? 'border-gray-800' : 'border-white'}`}>
-                        {project.extra}
+                        +{(projectWorkforce.find(pw => pw.projectName === project.name)?.members || []).length - 3}
                       </div>
                     )}
                   </div>
@@ -332,104 +519,57 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
           </div>
         </div>
 
-        {/* Fourth Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Top Teams */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
-            <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Top Teams</h3>
-            <div className="space-y-6">
-              {topTeams.map((team, i) => (
-                <div key={i} className="flex justify-between items-center">
-                  <div className="flex gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${isDarkMode ? 'bg-gray-800/50' : team.color}`}>
-                      <span className={isDarkMode ? team.color.split(' ')[1] : ''}>{team.icon}</span>
-                    </div>
-                    <div>
-                      <h4 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{team.name}</h4>
-                      <p className="text-[10px] text-gray-400 font-medium">Hours Logged : {team.hours}</p>
-                    </div>
-                  </div>
-                  <div className="text-end">
-                    <p className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{team.productivity}</p>
-                    <p className="text-[10px] text-gray-400 font-medium">Productivity</p>
-                  </div>
+        {/* Project Detail Modal */}
+        {selectedProject && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200`}>
+              <div className={`p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-100'} flex justify-between items-center`}>
+                <div>
+                  <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{selectedProject.projectName}</h3>
+                  <p className="text-xs text-blue-500 font-black uppercase tracking-wider mt-1">{selectedProject.members.length} Employees Working</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Task Details (Donut Chart) */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
-            <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Task Details</h3>
-            <div className="flex justify-center gap-4 mb-4">
-              <div className="flex flex-col items-center">
-                <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>496</span>
-                <span className="text-[10px] text-gray-400 font-medium">Ongoing</span>
+                <button 
+                  onClick={() => setSelectedProject(null)}
+                  className={`p-2 rounded-lg ${isDarkMode ? 'hover:bg-gray-800 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <div className="flex flex-col items-center">
-                <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>165</span>
-                <span className="text-[10px] text-gray-400 font-medium">On hold</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>127</span>
-                <span className="text-[10px] text-gray-400 font-medium">Completed</span>
-              </div>
-            </div>
-            <div className="h-64 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[
-                      { name: 'Ongoing', value: 496 },
-                      { name: 'On hold', value: 165 },
-                      { name: 'Completed', value: 127 },
-                    ]}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    <Cell fill="#3b82f6" />
-                    <Cell fill={isDarkMode ? "#334155" : "#64748b"} />
-                    <Cell fill="#ec4899" />
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                <p className="text-[10px] text-gray-400 font-medium">Total Task</p>
-                <p className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>788</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Top Web App & Usage */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
-            <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Top Web App & Usage</h3>
-            <div className="space-y-6">
-              {webAppUsage.map((app, i) => (
-                <div key={i} className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <div className="flex gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-white ${isDarkMode ? 'bg-gray-800' : 'bg-gray-900'}`}>
-                        {app.name === 'Figma' ? <Grid size={18} /> : app.name === 'Google' ? <Globe size={18} /> : app.name === 'Teams' ? <Users size={18} /> : <Box size={18} />}
+              <div className="p-6 max-h-[400px] overflow-y-auto custom-scrollbar">
+                <div className="space-y-5">
+                  {selectedProject.members.length > 0 ? selectedProject.members.map((member: any, i: number) => (
+                    <div key={i} className="flex justify-between items-center group">
+                      <div className="flex items-center gap-4">
+                        <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full border-2 border-transparent group-hover:border-blue-500 transition-all" />
+                        <div>
+                          <p className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{member.name}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{member.team}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className={`font-bold text-xs ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{app.name}</h4>
-                        <p className="text-[10px] text-gray-400 font-medium">{app.category}</p>
+                      <div className="text-end">
+                        <p className={`text-[10px] font-black ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>{member.time}</p>
+                        <p className="text-[9px] text-gray-400 font-medium">Since {member.startDate}</p>
                       </div>
                     </div>
-                    <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{app.hours}</span>
-                  </div>
-                  <div className={`w-full h-1.5 rounded-full overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'}`}>
-                    <div className={`h-full ${app.color}`} style={{ width: `${app.progress}%` }} />
-                  </div>
+                  )) : (
+                    <div className="text-center py-10">
+                      <p className="text-sm text-gray-400 font-bold">No active workforce found for this project</p>
+                    </div>
+                  )}
                 </div>
-              ))}
+              </div>
+              <div className={`p-6 bg-gray-50/50 dark:bg-gray-900/20 border-t ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
+                <button 
+                  onClick={() => setSelectedProject(null)}
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/25"
+                >
+                  Close Insights
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
 
         {/* Members Table */}
         <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden`}>
@@ -447,8 +587,6 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Designation</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Email Address</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Phone Number</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Experience</th>
-                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Work Location</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Status</th>
                 </tr>
               </thead>
@@ -458,22 +596,24 @@ export default function AdminDashboardView({ isRTL = false, isDarkMode = false }
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative">
-                          <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full" referrerPolicy="no-referrer" />
-                          <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'} ${member.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                        </div>
-                        <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{member.name}</span>
+                          <img src={member.avatar} alt={member.name} className="w-8 h-8 rounded-full object-cover" referrerPolicy="no-referrer" />
+                        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 ${isDarkMode ? 'border-gray-800' : 'border-white'} ${member.isTracking ? 'bg-emerald-500 animate-pulse' : (member.status === 'Active' ? 'bg-blue-500' : 'bg-red-500')}`} />
                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.role}</td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.email}</td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.phone}</td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.experience}</td>
-                    <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.location}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold ${member.status === 'Active' ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-500') : (isDarkMode ? 'bg-red-500/10 text-red-500' : 'bg-red-50 text-red-500')}`}>
-                        {member.status}
-                      </span>
-                    </td>
+                      <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{member.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.role}</td>
+                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.email}</td>
+                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.phone}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                      member.isTracking ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600') :
+                      member.status === 'Active' ? (isDarkMode ? 'bg-blue-500/10 text-blue-500' : 'bg-blue-50 text-blue-500') : 
+                      (isDarkMode ? 'bg-red-500/10 text-red-500' : 'bg-red-50 text-red-500')
+                    }`}>
+                      {member.status}
+                    </span>
+                  </td>
                   </tr>
                 ))}
               </tbody>

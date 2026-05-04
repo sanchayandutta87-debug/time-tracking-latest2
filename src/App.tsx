@@ -37,6 +37,14 @@ import EditTimeView from './components/EditTimeView';
 import DownloadView from './components/DownloadView';
 import AlertsView from './components/AlertsView';
 import AvatarView from './components/AvatarView';
+import UnusualActivityView from './components/UnusualActivityView';
+import HoursTrackedView from './components/HoursTrackedView';
+import TimelineReportView from './components/TimelineReportView';
+import PoorTimeUseView from './components/PoorTimeUseView';
+import LowActivityView from './components/LowActivityView';
+import IdleTimeReportView from './components/IdleTimeReportView';
+import OvertimeLimitView from './components/OvertimeLimitView';
+import WorkingOnWeekendsView from './components/WorkingOnWeekendsView';
 import { Search, Plus, Box, Users, UserCheck, UserPlus, List, Grid, ChevronRight, Menu, Bell, Moon, Sun, Globe, Settings as SettingsIcon, LogOut, User, Clock, X, Activity, Umbrella } from 'lucide-react';
 
 const stats = [
@@ -86,8 +94,18 @@ export default function App() {
   }, [currentView, navigate]);
 
   const { darkMode, setDarkMode } = useAppContext();
-  const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading } = useAuth();
+  const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading, updatePresence } = useAuth();
 
+  // Presence Update Loop
+  useEffect(() => {
+    if (isAuthenticated) {
+      updatePresence();
+      const interval = setInterval(() => {
+        updatePresence();
+      }, 120000); // 2 minutes
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, updatePresence]);
 
   // Header Interactive States
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -200,7 +218,7 @@ export default function App() {
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                     <Box size={20} />
                   </div>
-                  <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800 dark:text-white'}`}>Dreams Timer</span>
+                  <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800 dark:text-white'}`}>CodeXConquer</span>
                 </div>
               )}
               <button 
@@ -463,6 +481,22 @@ export default function App() {
             <ActivitySummaryView />
           ) : currentView === 'report-web-app-usage' ? (
             <WebAppUsageView />
+          ) : currentView === 'report-unusual-activity' ? (
+            <UnusualActivityView />
+          ) : currentView === 'report-hours-tracked' ? (
+            <HoursTrackedView />
+          ) : currentView === 'report-timeline' ? (
+            <TimelineReportView />
+          ) : currentView === 'report-poor-time-use' ? (
+            <PoorTimeUseView />
+          ) : currentView === 'report-low-activity' ? (
+            <LowActivityView />
+          ) : currentView === 'report-idle-time' ? (
+            <IdleTimeReportView />
+          ) : currentView === 'report-overtime-limit' ? (
+            <OvertimeLimitView />
+          ) : currentView === 'report-weekend-work' ? (
+            <WorkingOnWeekendsView />
           ) : currentView === 'settings' ? (
             <SettingsView />
           ) : currentView === 'ui-alerts' ? (
@@ -500,21 +534,16 @@ export default function App() {
                   <span className="text-gray-600 dark:text-gray-400 capitalize">{currentView.replace('-', ' ')}</span>
                 </div>
               </div>
-              <AdminDashboardView />
+              <AdminDashboardView isDarkMode={darkMode} />
             </div>
           ) : currentView === 'mini-sidebar' || currentView === 'hover-view' || currentView === 'hidden-menu' || currentView === 'full-width' || currentView === 'rtl-support' || currentView === 'dark-mode' ? (
-            <AdminDashboardView isRTL={currentView === 'rtl-support'} isDarkMode={currentView === 'dark-mode'} />
+            <AdminDashboardView isRTL={currentView === 'rtl-support'} isDarkMode={darkMode} />
           ) : (
-            <AdminDashboardView />
+            <AdminDashboardView isDarkMode={darkMode} />
           )}
         </main>
         
-        {/* Floating Settings Button */}
-        {currentView !== 'login' && currentView !== 'register' && currentView !== 'saas-landing' && (
-          <button className="fixed right-0 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-blue-700 transition-all z-50">
-            <SettingsIcon size={20} className="animate-spin-slow" />
-          </button>
-        )}
+
       </div>
     </div>
   );

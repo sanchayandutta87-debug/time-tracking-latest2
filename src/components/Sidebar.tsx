@@ -35,9 +35,6 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
   const reportSubItems = [
     { label: 'Reports', view: 'report-main' },
     { label: 'Timesheets', view: 'report-timesheets' },
-    { label: 'Attendance', view: 'report-attendance' },
-    { label: 'Activity Summary', view: 'report-activity-summary' },
-    { label: 'Web & App Usage', view: 'report-web-app-usage' },
   ];
 
   const baseUISubItems = [
@@ -111,11 +108,9 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
         {isUserMode && (
           <>
             <nav className="space-y-1 mt-6">
-              <SidebarItem icon={<Calendar size={18} />} label="Timesheet" active={currentView === 'timesheet'} onClick={() => onViewChange('timesheet')} darkMode={darkMode} />
               <SidebarItem icon={<UserCheck size={18} />} label="Attendance" active={currentView === 'attendance'} onClick={() => onViewChange('attendance')} darkMode={darkMode} />
               <SidebarItem icon={<Umbrella size={18} />} label="Leave" active={currentView === 'leave'} onClick={() => onViewChange('leave')} darkMode={darkMode} />
               <SidebarItem icon={<Briefcase size={18} />} label="Projects" active={currentView === 'projects'} onClick={() => onViewChange('projects')} darkMode={darkMode} />
-              <SidebarItem icon={<FileCheck size={18} />} label="Tasks" active={currentView === 'tasks'} onClick={() => onViewChange('tasks')} darkMode={darkMode} />
               
               {/* Reports with sub-items */}
               <div className="mt-1">
@@ -143,10 +138,6 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
               </div>
             </nav>
 
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Account</p>
-            <nav className="space-y-1">
-              <SidebarItem icon={<User size={18} />} label="Profile" active={currentView === 'profile'} onClick={() => onViewChange('profile')} darkMode={darkMode} />
-            </nav>
 
           </>
         )}
@@ -164,10 +155,7 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
             </div>
             
             <div className={`ml-4 mt-1 space-y-1 border-l-2 ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
-              <NavItem label="Chat" active={currentView === 'chat'} onClick={() => onViewChange('chat')} darkMode={darkMode} />
-              <NavItem label="Invoices" active={currentView === 'invoices'} onClick={() => onViewChange('invoices')} darkMode={darkMode} />
               <NavItem label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} darkMode={darkMode} />
-              <NavItem label="Notes" active={currentView === 'notes'} onClick={() => onViewChange('notes')} darkMode={darkMode} />
             </div>
           </div>
 
@@ -202,11 +190,11 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Manage</p>
         <nav className="space-y-1">
           <div 
-            onClick={() => onViewChange('tasks')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'tasks' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
+            onClick={() => onViewChange('projects')}
+            className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'projects' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
           >
-            <FileCheck size={18} />
-            <span className="text-sm font-medium">Tasks</span>
+            <Briefcase size={18} />
+            <span className="text-sm font-medium">Projects</span>
           </div>
         </nav>
 
@@ -243,16 +231,6 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
           </div>
         </nav>
 
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Account</p>
-        <nav className="space-y-1">
-          <div 
-            onClick={() => onViewChange('profile')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'profile' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <User size={18} />
-            <span className="text-sm font-medium">Profile</span>
-          </div>
-        </nav>
 
         {!isAuthenticated && (
           <>
@@ -271,13 +249,6 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
 
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Administrator</p>
         <nav className="space-y-1">
-          <div 
-            onClick={() => onViewChange('invoices')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'invoices' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <FileText size={18} />
-            <span className="text-sm font-medium">Invoices</span>
-          </div>
           <div className="mt-1">
             <div 
               onClick={() => setIsReportsOpen(!isReportsOpen)}

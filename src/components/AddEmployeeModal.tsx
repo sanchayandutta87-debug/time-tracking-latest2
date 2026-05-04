@@ -9,13 +9,10 @@ interface Employee {
   designation: string;
   department: string;
   team: string;
-  location: 'Remote' | 'Office' | 'Hybrid';
-  officeLocation: string;
   address: string;
   shift: 'Day' | 'Night' | 'Evening';
   email: string;
   phone: string;
-  experience: string;
   status: 'Active' | 'Inactive' | 'Archived';
   avatar: string;
   joinDate: string;
@@ -29,7 +26,6 @@ interface AddEmployeeModalProps {
 }
 
 const shifts = ['Day', 'Night', 'Evening'];
-const locations = ['Remote', 'Office', 'Hybrid'];
 const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default';
 
 export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEdit }: AddEmployeeModalProps) {
@@ -42,13 +38,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
     designation: '',
     department: '',
     team: '',
-    location: 'Office',
-    officeLocation: '',
     address: '',
     shift: 'Day',
     email: '',
     phone: '',
-    experience: '1 year',
     status: 'Active',
     avatar: DEFAULT_AVATAR,
     joinDate: new Date().toISOString().split('T')[0]
@@ -64,13 +57,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
         designation: '',
         department: '',
         team: '',
-        location: 'Office',
-        officeLocation: '',
         address: '',
         shift: 'Day',
         email: '',
         phone: '',
-        experience: '1 year',
         status: 'Active',
         avatar: DEFAULT_AVATAR,
         joinDate: new Date().toISOString().split('T')[0]
@@ -105,13 +95,10 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
       designation: formData.designation || '',
       department: formData.department || '',
       team: formData.team || '',
-      location: (formData.location as Employee['location']) || 'Office',
-      officeLocation: formData.officeLocation || '',
       address: formData.address || '',
       shift: (formData.shift as Employee['shift']) || 'Day',
       email: formData.email || '',
       phone: formData.phone || '',
-      experience: formData.experience || '1 year',
       status: (formData.status as Employee['status']) || 'Active',
       avatar: formData.avatar || DEFAULT_AVATAR,
       joinDate: formData.joinDate || new Date().toISOString().split('T')[0]
@@ -231,15 +218,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
                 </div>
               </div>
               <div className="space-y-2">
-                <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Experience</label>
-                <div className="relative">
-                  <Award size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <select className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all font-bold appearance-none ${darkMode ? 'bg-black border-gray-700 text-white' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white'}`} value={formData.experience} onChange={(e) => setFormData({...formData, experience: e.target.value})}>
-                    {['1 year', '2 years', '3 years', '4 years', '5+ years', '10+ years'].map(exp => <option key={exp} value={exp}>{exp}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="space-y-2">
                 <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Shift</label>
                 <div className="relative">
                   <Clock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -252,32 +230,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
           </div>
 
           <div className="space-y-8">
-            <h3 className={`text-xs font-black uppercase tracking-[0.3em] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Work Environment</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Work Location Type</label>
-                <div className="flex gap-4">
-                  {locations.map(loc => (
-                    <button 
-                      key={loc}
-                      type="button"
-                      onClick={() => setFormData({...formData, location: loc as Employee['location']})}
-                      className={`flex-1 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all border-2 ${formData.location === loc ? 'bg-emerald-500 border-emerald-500 text-white shadow-xl shadow-emerald-500/20' : (darkMode ? 'bg-black border-gray-700 text-gray-400' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-400 hover:border-emerald-200')}`}
-                    >
-                      {loc}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Office Branch / Place</label>
-                <div className="relative">
-                  <MapPin size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all font-bold ${darkMode ? 'bg-black border-gray-700 text-white focus:border-emerald-600' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white focus:border-emerald-600'}`} placeholder="e.g. Headquarters, NY" value={formData.officeLocation} onChange={(e) => setFormData({...formData, officeLocation: e.target.value})} />
-                </div>
-              </div>
-            </div>
-
+            <h3 className={`text-xs font-black uppercase tracking-[0.3em] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Additional Details</h3>
             <div className="space-y-2">
               <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Residential / Full Address</label>
               <div className="relative">

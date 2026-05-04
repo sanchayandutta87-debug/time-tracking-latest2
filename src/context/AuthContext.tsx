@@ -7,7 +7,7 @@ export interface AuthUser {
   fullName: string;
   email: string;
   jobTitle: string;
-  role: 'admin' | 'user';
+  role: 'management' | 'employee';
   avatar: string;
   phone: string;
   address: string;
@@ -26,6 +26,7 @@ interface AuthContextType {
   register: (data: { fullName: string; email: string; password: string; jobTitle?: string }) => Promise<{ success: boolean; error?: string }>;
   googleLogin: () => Promise<void>;
   logout: () => Promise<void>;
+  updatePresence: () => Promise<void>;
   updateProfile: (data: Partial<AuthUser>) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   setIsLoading: (loading: boolean) => void;
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: data.full_name,
         email: data.email,
         jobTitle: data.job_title || '',
-        role: data.role || 'user',
+        role: data.role || 'employee',
         avatar: data.avatar_url || '',
         phone: data.phone || '',
         address: data.address || '',
@@ -117,10 +118,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.error('Failed to create profile:', insertError);
         }
       }
+      if (!profile) {
+        console.warn('Returning fallback profile from Auth metadata');
+        return {
+          id: user.id,
+          email: user.email!,
+          fullName: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
+          role: 'user',
+          avatar: user.user_metadata.avatar_url || '',
+          provider: user.app_metadata.provider as any
+        } as AuthUser;
+      }
       return profile;
     } catch (err) {
       console.error('Critical error in ensureProfileExists:', err);
-      return null;
+      return {
+        id: user.id,
+        email: user.email!,
+        fullName: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
+        role: 'user',
+        avatar: user.user_metadata.avatar_url || '',
+        provider: user.app_metadata.provider as any
+      } as AuthUser;
+    }
+  };
+
+  const handleClockIn = async (userId: string) => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('date', today)
+        .maybeSingle();
+
+      const now = new Date();
+
+      if (!data) {
+        // Initial clock-in for the day
+        await supabase.from('attendance').insert({
+          user_id: userId,
+          date: today,
+          check_in: now.toISOString()
+        });
+      } else if (data.check_out) {
+        // User is logging back in after a sign-out
+        const lastCheckOut = new Date(data.check_out);
+        const gapMs = now.getTime() - lastCheckOut.getTime();
+        const gapMinutes = Math.floor(gapMs / 60000);
+        
+        if (gapMinutes <= 120) { // Within 2 hours: RESUME
+          await supabase
+            .from('attendance')
+            .update({
+              check_out: null
+            })
+            .eq('id', data.id);
+        } else { // Over 2 hours: FINALIZED at return time
+          await supabase
+            .from('attendance')
+            .update({
+              check_out: now.toISOString()
+            })
+            .eq('id', data.id);
+        }
+      }
+    } catch (err) {
+      console.error('Error in flexible clock-in:', err);
     }
   };
 
@@ -132,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // 1. Get initial session
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user && mounted) {
+          handleClockIn(session.user.id).catch(console.error);
           const profile = await ensureProfileExists(session.user);
           if (mounted) setCurrentUser(profile);
         }
@@ -144,9 +210,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initialize();
 
-    // 2. Listen for auth changes
+    // 2. Presence Heartbeat
+    updatePresence(); // Ping immediately on load
+    const presenceInterval = setInterval(() => {
+      if (mounted) updatePresence();
+    }, 60000);
+
+    // 3. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
+        if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+          // Run non-blocking to prevent holding up the auth state change
+          handleClockIn(session.user.id).catch(console.error);
+        }
+        
         const profile = await ensureProfileExists(session.user);
         if (mounted) {
           setCurrentUser(profile);
@@ -221,10 +298,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) console.error('Google login error:', error.message);
   };
 
+  const handleClockOut = async () => {
+    if (!currentUser) return;
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const { data } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .eq('date', today)
+        .maybeSingle();
+
+      if (data) {
+        const checkOutTime = new Date();
+        
+        const { error } = await supabase
+          .from('attendance')
+          .update({
+            check_out: checkOutTime.toISOString()
+          })
+          .eq('id', data.id);
+          
+        if (error) {
+          console.error('Error updating clock-out:', error);
+          alert('Failed to clock out: ' + error.message);
+        }
+      }
+    } catch (err) {
+      console.error('Error auto clock-out:', err);
+    }
+  };
+
   // Logout
   const logout = async () => {
+    await handleClockOut();
     await supabase.auth.signOut();
     setCurrentUser(null);
+  };
+
+  // Presence Heartbeat
+  const updatePresence = async () => {
+    if (!currentUser) return;
+    try {
+      await supabase
+        .from('users')
+        .update({ last_seen: new Date().toISOString() })
+        .eq('id', currentUser.id);
+    } catch (err) {
+      // Silently fail if column doesn't exist
+    }
   };
 
   // Update profile
@@ -275,6 +397,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       googleLogin,
       logout,
+      updatePresence,
       updateProfile,
       updatePassword,
       setIsLoading,

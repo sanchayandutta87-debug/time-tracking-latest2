@@ -1,166 +1,310 @@
-import React from 'react';
-import { Search, Plus, ChevronRight, ArrowUpDown, FileText, Check, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, ChevronRight, ArrowUpDown, FileText, Check, X, Loader2, Calendar as CalendarIcon, Clock } from 'lucide-react';
+import { supabase } from '../utils/supabase';
+import { useAuth } from '../context/AuthContext';
+import ApplyLeaveModal from './ApplyLeaveModal';
 
-const leaveRequests = [
-  {
-    name: 'Shaun Farley',
-    role: 'UI/UX Designer',
-    type: 'Casual Leave',
-    fromDate: '15 May 2025',
-    toDate: '15 May 2025',
-    duration: '1 Day',
-    avatar: 'https://picsum.photos/seed/shaun/40/40'
-  },
-  {
-    name: 'Jenny Ellis',
-    role: 'PHP Developer',
-    type: 'Sick Leave',
-    fromDate: '13 May 2025',
-    toDate: '13 May 2025',
-    duration: '1st Half',
-    avatar: 'https://picsum.photos/seed/jenny/40/40'
-  },
-  {
-    name: 'Leon Baxter',
-    role: 'Senior Manager',
-    type: 'Maternity',
-    fromDate: '11 May 2025',
-    toDate: '11 Jul 2025',
-    duration: '2 Months',
-    avatar: 'https://picsum.photos/seed/leon/40/40'
-  },
-  {
-    name: 'Karen Flores',
-    role: 'SEO Analyst',
-    type: 'Annual Leave',
-    fromDate: '26 Apr 2025',
-    toDate: '28 Apr 2025',
-    duration: '3 Days',
-    avatar: 'https://picsum.photos/seed/karen/40/40'
-  },
-  {
-    name: 'Charles Cline',
-    role: 'HR Assistant',
-    type: 'Permission',
-    fromDate: '24 Apr 2025',
-    toDate: '24 Apr 2025',
-    duration: '02:00 Hours',
-    avatar: 'https://picsum.photos/seed/charles/40/40'
-  }
-];
+interface LeaveRequest {
+  id: string;
+  name: string;
+  role: string;
+  type: string;
+  fromDate: string;
+  toDate: string;
+  duration: string;
+  avatar: string;
+  status: string;
+  reason: string;
+}
 
 export default function LeaveView() {
+  const { currentUser } = useAuth();
+  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('Requested');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchLeaves = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Fetch leave_requests (filtered by user if employee)
+      let query = supabase
+        .from('leave_requests')
+        .select('*, users(full_name, job_title, avatar_url)')
+        .order('created_at', { ascending: false });
+      
+      if (currentUser?.role === 'employee') {
+        query = query.eq('user_id', currentUser.id);
+      }
+
+      const { data: leavesData, error: leavesError } = await query;
+
+      if (leavesError) throw leavesError;
+      if (!leavesData) return;
+
+      const formatted = leavesData.map(item => {
+        const user = item.users;
+        const fromDate = new Date(item.start_date);
+        const toDate = new Date(item.end_date);
+        
+        const diffTime = Math.abs(toDate.getTime() - fromDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Map database status 'pending' to UI status 'Requested'
+        const displayStatus = item.status === 'pending' ? 'Requested' : 
+                            (item.status.charAt(0).toUpperCase() + item.status.slice(1));
+
+        return {
+          id: item.id,
+          name: user?.full_name || 'Unknown Employee',
+          role: user?.job_title || 'Team Member',
+          type: item.type,
+          fromDate: fromDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          toDate: toDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          duration: diffDays === 1 ? '1 Day' : `${diffDays} Days`,
+          avatar: user?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'U')}&background=random`,
+          status: displayStatus,
+          reason: item.reason
+        };
+      });
+
+      setLeaves(formatted);
+    } catch (error) {
+      console.error('Fetch Error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLeaves();
+  }, []);
+
+  const handleUpdateStatus = async (id: string, status: string) => {
+    try {
+      // Database status is lowercase 'approved', 'rejected'
+      const dbStatus = status.toLowerCase() === 'requested' ? 'pending' : status.toLowerCase();
+
+      // 1. Get the leave details first to know who to notify
+      const { data: leaveData } = await supabase
+        .from('leave_requests')
+        .select('user_id, type')
+        .eq('id', id)
+        .single();
+
+      // 2. Update the status
+      const { error } = await supabase
+        .from('leave_requests')
+        .update({ status: dbStatus })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // 3. Create a notification for the employee
+      if (leaveData) {
+        const title = status === 'Approved' ? 'Leave Request Approved! 🎉' : 'Leave Request Rejected';
+        const message = status === 'Approved' 
+          ? `Your request for ${leaveData.type} has been approved by Management.`
+          : `Your request for ${leaveData.type} was not approved at this time.`;
+
+        await supabase.from('notifications').insert({
+          user_id: leaveData.user_id,
+          title,
+          message,
+          type: status === 'Approved' ? 'success' : 'error'
+        });
+      }
+
+      fetchLeaves();
+    } catch (error) {
+      console.error('Error updating leave status:', error);
+    }
+  };
+
+  const filteredLeaves = leaves.filter(l => 
+    l.status === activeTab && 
+    (l.name.toLowerCase().includes(searchQuery.toLowerCase()) || l.type.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
+    <div className="p-8 bg-gray-50 dark:bg-transparent min-h-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Leave</h1>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Leave</h1>
+        <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-slate-500">
           <span className="hover:text-blue-600 cursor-pointer">Home</span>
           <ChevronRight size={14} />
-          <span className="text-gray-600">Leave</span>
+          <span className="text-gray-600 dark:text-gray-300">Leave</span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-8 border-b border-gray-200 mb-8">
-        <button className="flex items-center gap-2 pb-4 text-blue-600 font-bold border-b-2 border-blue-600">
-          Requested
-        </button>
-        <button className="flex items-center gap-2 pb-4 text-gray-500 font-bold hover:text-gray-700">
-          Approved
-        </button>
-        <button className="flex items-center gap-2 pb-4 text-gray-500 font-bold hover:text-gray-700">
-          Rejected
-        </button>
+      <div className="flex items-center gap-8 border-b border-gray-200 dark:border-slate-700 mb-8">
+        {(currentUser?.role === 'management' 
+          ? ['Requested', 'Approved', 'Rejected'] 
+          : ['Requested']
+        ).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-2 pb-4 font-bold transition-all ${
+              activeTab === tab 
+                ? 'text-blue-600 border-b-2 border-blue-600' 
+                : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
 
       {/* Filters & Actions */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div className="bg-white flex items-center gap-2 border border-gray-100 rounded-lg px-3 py-2.5 w-full md:w-80 shadow-sm">
+        <div className="bg-white dark:bg-slate-800 flex items-center gap-2 border border-gray-100 dark:border-slate-700 rounded-lg px-3 py-2.5 w-full md:w-80 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all">
           <Search className="text-gray-400" size={18} />
-          <input type="text" placeholder="Search Keyword" className="outline-none w-full text-sm" />
+          <input 
+            type="text" 
+            placeholder="Search Keyword" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="outline-none w-full text-sm bg-transparent dark:text-white dark:placeholder-slate-500" 
+          />
         </div>
         
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <button className="bg-white border border-gray-100 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 flex items-center gap-2">
+          <button className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-700 dark:text-slate-300 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors">
             <ArrowUpDown size={16} /> Sort By : Newest
           </button>
           
-          <button className="bg-blue-600 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
-            <Plus size={18} /> Add New
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2.5 rounded-lg flex items-center gap-2 text-sm font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+          >
+            <Plus size={18} /> Apply
           </button>
         </div>
       </div>
 
-      {/* Table Container */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-50">
-                <th className="px-6 py-4 text-sm font-bold text-gray-800">Name</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-800">Type</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-800">From Date</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-800">To Date</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-800">Duration</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-800">Reason</th>
-                <th className="px-6 py-4 text-sm font-bold text-gray-800"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {leaveRequests.map((row, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img 
-                          src={row.avatar} 
-                          alt={row.name} 
-                          className="w-10 h-10 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{row.name}</p>
-                        <p className="text-xs text-blue-600 font-medium">{row.role}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500 font-medium">{row.type}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500 font-medium">{row.fromDate}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500 font-medium">{row.toDate}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm text-gray-500 font-medium">{row.duration}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button className="text-gray-400 hover:text-blue-600 transition-colors">
-                      <FileText size={18} />
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all">
-                        <Check size={16} />
-                      </button>
-                      <button className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-red-500 hover:bg-red-50 hover:border-red-200 transition-all">
-                        <X size={16} />
-                      </button>
-                    </div>
-                  </td>
+      {/* Premium Table Container */}
+      <div className="bg-white dark:bg-[#0A0A0B]/80 backdrop-blur-xl rounded-[32px] border border-gray-100 dark:border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-32 gap-4">
+            <Loader2 size={40} className="text-blue-500 animate-spin" />
+            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Syncing Data...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-50 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Employee</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Leave Type</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Schedule</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Duration</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                {filteredLeaves.length > 0 ? filteredLeaves.map((row) => (
+                  <tr key={row.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.02] transition-all duration-300 group">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <img 
+                            src={row.avatar} 
+                            alt={row.name} 
+                            className="w-12 h-12 rounded-2xl object-cover ring-2 ring-gray-100 dark:ring-white/5 group-hover:scale-105 transition-transform duration-300"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-[#0A0A0B] rounded-full shadow-sm"></div>
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-gray-800 dark:text-white tracking-tight">{row.name}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">{row.role}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-500/20">
+                        {row.type}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{row.fromDate}</span>
+                          <ChevronRight size={12} className="text-gray-300" />
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{row.toDate}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2 text-sm font-black text-gray-800 dark:text-white">
+                        <Clock size={14} className="text-gray-400" />
+                        {row.duration}
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${
+                        row.status === 'Approved' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20' : 
+                        row.status === 'Rejected' ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-500/20' : 
+                        'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20'
+                      }`}>
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <button 
+                          title={row.reason}
+                          className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
+                        >
+                          <FileText size={18} />
+                        </button>
+                        {row.status === 'Requested' && currentUser?.role === 'management' && (
+                          <div className="flex items-center gap-2 border-l border-gray-100 dark:border-white/5 pl-3">
+                            <button 
+                              onClick={() => handleUpdateStatus(row.id, 'Approved')}
+                              className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-90"
+                            >
+                              <Check size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleUpdateStatus(row.id, 'Rejected')}
+                              className="p-2.5 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90"
+                            >
+                              <X size={18} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="px-8 py-32 text-center">
+                      <div className="flex flex-col items-center gap-4 opacity-40">
+                        <div className="w-16 h-16 rounded-3xl bg-gray-50 dark:bg-white/5 flex items-center justify-center">
+                          <CalendarIcon size={32} />
+                        </div>
+                        <p className="text-sm font-black text-gray-400 uppercase tracking-[0.2em]">No Records Found</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      <ApplyLeaveModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSuccess={fetchLeaves}
+      />
     </div>
   );
 }

@@ -7,29 +7,47 @@ interface InvoiceBillViewProps {
   onBack: () => void;
 }
 
-export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProps) {
+export default function InvoiceBillView({ invoice, onBack }: { invoice: any, onBack: () => void }) {
   const [isSent, setIsSent] = useState(false);
+  
+  // Map database fields to display fields
+  const displayData = {
+    id: invoice.invoice_number || invoice.id,
+    name: invoice.customer_name || invoice.name,
+    email: invoice.customer_email || invoice.email,
+    finalAmount: invoice.total_amount || invoice.finalAmount || 0,
+    dueDate: invoice.due_date ? new Date(invoice.due_date).toLocaleDateString() : (invoice.dueDate || 'N/A'),
+    createdOn: invoice.created_at ? new Date(invoice.created_at).toLocaleDateString() : (invoice.createdOn || 'N/A'),
+    status: invoice.status,
+    transactionId: invoice.transaction_id || invoice.transactionId || 'N/A',
+    items: invoice.items || [],
+    subTotal: invoice.sub_total || invoice.subTotal || invoice.total_amount || 0,
+    taxRate: invoice.tax_rate || invoice.taxRate || 18,
+    taxAmount: invoice.tax_amount || invoice.taxAmount || 0,
+    notes: invoice.notes || 'Thank you for your business!',
+    discount: invoice.discount || 0
+  };
 
   const handlePrint = () => {
     window.print();
   };
 
   const handleSendEmail = () => {
-    const subject = encodeURIComponent(`Invoice from Dreams Timer - ${invoice.id}`);
+    const subject = encodeURIComponent(`Invoice from CodeXConquer - ${displayData.id}`);
     const body = encodeURIComponent(
-      `Hello ${invoice.name},\n\n` +
+      `Hello ${displayData.name},\n\n` +
       `I hope you're doing well. Please find the details of your invoice below:\n\n` +
-      `Invoice ID: ${invoice.id}\n` +
-      `Amount Due: $${invoice.finalAmount.toFixed(2)}\n` +
-      `Due Date: ${invoice.dueDate}\n\n` +
-      `Status: ${invoice.status}\n\n` +
+      `Invoice ID: ${displayData.id}\n` +
+      `Amount Due: $${displayData.finalAmount.toFixed(2)}\n` +
+      `Due Date: ${displayData.dueDate}\n\n` +
+      `Status: ${displayData.status}\n\n` +
       `You can view the full bill in your dashboard.\n\n` +
       `Thank you for your business!\n\n` +
       `Best regards,\n` +
-      `Dreams Timer Billing Team`
+      `CodeXConquer Billing Team`
     );
     
-    window.location.href = `mailto:${invoice.email}?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${displayData.email}?subject=${subject}&body=${body}`;
     
     // Simulate UI feedback
     setIsSent(true);
@@ -66,9 +84,9 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
           <div>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-xl">
-                DT
+                CX
               </div>
-              <h1 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">Dreams Timer</h1>
+              <h1 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">CodeXConquer</h1>
             </div>
             <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
               <p className="flex items-center gap-2"><Building size={14} /> 123 Business Avenue, Suite 100</p>
@@ -78,15 +96,15 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
           </div>
           <div className="text-right">
             <h2 className="text-4xl font-black text-blue-600 uppercase tracking-widest mb-2">Invoice</h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium mb-4">#{invoice.id}</p>
+            <p className="text-gray-500 dark:text-gray-400 font-medium mb-4">#{displayData.id}</p>
             <div className="bg-white dark:bg-black p-4 rounded-xl border border-gray-100 dark:border-gray-800 inline-block text-left">
               <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <span className="text-gray-500 dark:text-gray-400 font-medium">Issue Date:</span>
-                <span className="text-gray-800 dark:text-white font-semibold">{invoice.createdOn.split(',')[0]}</span>
+                <span className="text-gray-800 dark:text-white font-semibold">{displayData.createdOn}</span>
                 <span className="text-gray-500 dark:text-gray-400 font-medium">Due Date:</span>
-                <span className="text-gray-800 dark:text-white font-semibold">{invoice.dueDate}</span>
+                <span className="text-gray-800 dark:text-white font-semibold">{displayData.dueDate}</span>
                 <span className="text-gray-500 dark:text-gray-400 font-medium">Ref No:</span>
-                <span className="text-gray-800 dark:text-white font-semibold uppercase">{invoice.transactionId || 'N/A'}</span>
+                <span className="text-gray-800 dark:text-white font-semibold uppercase">{displayData.transactionId}</span>
               </div>
             </div>
           </div>
@@ -96,18 +114,18 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
         <div className="flex justify-between items-end mb-8">
           <div>
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Billed To</p>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{invoice.name}</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{invoice.email}</p>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{displayData.name}</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{displayData.email}</p>
           </div>
           <div className="text-right">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Payment Status</p>
             <span className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider ${
-              invoice.status === 'Paid' ? 'bg-green-50 text-green-500 border border-green-100' : 
-              invoice.status === 'Overdue' ? 'bg-red-50 dark:bg-red-900/20 text-red-500 border border-red-100' : 
-              invoice.status === 'Pending' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500 border border-blue-100' : 
+              displayData.status === 'Paid' ? 'bg-green-50 text-green-500 border border-green-100' : 
+              displayData.status === 'Overdue' ? 'bg-red-50 dark:bg-red-900/20 text-red-500 border border-red-100' : 
+              displayData.status === 'Pending' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500 border border-blue-100' : 
               'bg-yellow-50 text-yellow-500 border border-yellow-100'
             }`}>
-              {invoice.status}
+              {displayData.status}
             </span>
           </div>
         </div>
@@ -124,8 +142,8 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {invoice.items && invoice.items.length > 0 ? (
-                invoice.items.map((item, index) => (
+              {displayData.items && displayData.items.length > 0 ? (
+                displayData.items.map((item: any, index: number) => (
                   <tr key={item.id || index} className="text-sm">
                     <td className="p-4 font-medium text-gray-800 dark:text-white">{item.description || 'Item Description'}</td>
                     <td className="p-4 text-center text-gray-600 dark:text-gray-300">{item.quantity}</td>
@@ -135,10 +153,10 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
                 ))
               ) : (
                 <tr className="text-sm">
-                  <td className="p-4 font-medium text-gray-800 dark:text-white">Standard Service</td>
+                  <td className="p-4 font-medium text-gray-800 dark:text-white">Professional Services</td>
                   <td className="p-4 text-center text-gray-600 dark:text-gray-300">1</td>
-                  <td className="p-4 text-right text-gray-600 dark:text-gray-300">${invoice.total.toFixed(2)}</td>
-                  <td className="p-4 text-right font-bold text-gray-800 dark:text-white">${invoice.total.toFixed(2)}</td>
+                  <td className="p-4 text-right text-gray-600 dark:text-gray-300">${displayData.subTotal.toFixed(2)}</td>
+                  <td className="p-4 text-right font-bold text-gray-800 dark:text-white">${displayData.subTotal.toFixed(2)}</td>
                 </tr>
               )}
             </tbody>
@@ -148,35 +166,31 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
         {/* Totals */}
         <div className="flex justify-between items-start">
           <div className="w-1/2">
-            {invoice.notes && (
-              <div className="bg-white dark:bg-black p-4 rounded-xl border border-gray-100 dark:border-gray-800">
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Notes & Terms</p>
-                <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{invoice.notes}</p>
-              </div>
-            )}
+            <div className="bg-white dark:bg-black p-4 rounded-xl border border-gray-100 dark:border-gray-800">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Notes & Terms</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">{displayData.notes}</p>
+            </div>
           </div>
           <div className="w-1/3">
             <div className="space-y-3 text-sm">
-              {invoice.subTotal !== undefined && (
-                <div className="flex justify-between text-gray-500 dark:text-gray-400 font-medium">
-                  <span>Subtotal</span>
-                  <span>${invoice.subTotal.toFixed(2)}</span>
-                </div>
-              )}
-              {invoice.discount !== undefined && invoice.discount > 0 && (
+              <div className="flex justify-between text-gray-500 dark:text-gray-400 font-medium">
+                <span>Subtotal</span>
+                <span>${displayData.subTotal.toFixed(2)}</span>
+              </div>
+              {displayData.discount > 0 && (
                 <div className="flex justify-between text-red-500 font-medium">
                   <span>Extra Discount</span>
-                  <span>-${invoice.discount.toFixed(2)}</span>
+                  <span>-${displayData.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-gray-500 dark:text-gray-400 font-medium">
-                <span>Tax (GST {invoice.taxRate}%)</span>
-                <span>${invoice.taxAmount.toFixed(2)}</span>
+                <span>Tax (GST {displayData.taxRate}%)</span>
+                <span>${displayData.taxAmount.toFixed(2)}</span>
               </div>
               <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-center">
                   <span className="font-bold text-gray-800 dark:text-white">Total Amount</span>
-                  <span className="text-2xl font-black text-blue-600">${invoice.finalAmount.toFixed(2)}</span>
+                  <span className="text-2xl font-black text-blue-600">${displayData.finalAmount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -186,7 +200,7 @@ export default function InvoiceBillView({ invoice, onBack }: InvoiceBillViewProp
         {/* Footer */}
         <div className="mt-16 pt-8 border-t border-gray-100 dark:border-gray-800 text-center text-sm text-gray-400">
           <p>Thank you for your business!</p>
-          <p className="mt-1">If you have any questions about this invoice, please contact support at billing@dreamstimer.com</p>
+          <p className="mt-1">If you have any questions about this invoice, please contact support at billing@codexconquer.com</p>
         </div>
       </div>
     </div>

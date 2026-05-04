@@ -14,52 +14,64 @@ const invoices = [
   { id: 'INV-5879', name: 'Lori Broaddus', email: 'broaddus@example.com', createdOn: '10 Dec 2024, 11:23 PM', total: '$365', amountDue: '$21', dueDate: '10 Dec 2024, 11:23 PM', status: 'Overdue', avatar: 'https://picsum.photos/seed/lori/40/40' },
 ];
 
-export default function InvoicesTable() {
+export default function InvoicesTable({ invoices = [], onRowClick }: { invoices: any[], onRowClick: (invoice: any) => void }) {
+  if (invoices.length === 0) {
+    return (
+      <div className="py-24 text-center">
+        <p className="text-sm text-gray-400 italic">No invoices found. Create one to get started!</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">
-        <thead className="bg-white border-b border-gray-100">
+        <thead className="bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
           <tr>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Invoice</th>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Customer</th>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Created On</th>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Total</th>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Amount Due</th>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Due Date</th>
-            <th className="p-4 font-semibold text-gray-700 text-sm">Status</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Invoice</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Customer</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Created On</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Total</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Amount Due</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Due Date</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Status</th>
             <th className="p-4"></th>
           </tr>
         </thead>
         <tbody>
-          {invoices.map((invoice, index) => (
-            <tr key={`${invoice.id}-${index}`} className="border-b border-gray-50 hover:bg-gray-50 transition-colors group">
-              <td className="p-4 text-gray-600 text-sm font-medium">{invoice.id}</td>
+          {invoices.map((invoice) => (
+            <tr 
+              key={invoice.id} 
+              onClick={() => onRowClick(invoice)}
+              className="border-b border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer"
+            >
+              <td className="p-4 text-gray-600 dark:text-slate-400 text-sm font-medium">{invoice.invoice_number}</td>
               <td className="p-4">
                 <div className="flex items-center gap-3">
-                  <img src={invoice.avatar} alt={invoice.name} className="w-9 h-9 rounded-full border border-gray-100" referrerPolicy="no-referrer" />
+                  <img src={invoice.customer_avatar} alt={invoice.customer_name} className="w-9 h-9 rounded-full border border-gray-100 dark:border-slate-600" referrerPolicy="no-referrer" />
                   <div>
-                    <p className="font-bold text-gray-800 text-sm">{invoice.name}</p>
-                    <p className="text-xs text-gray-400">{invoice.email}</p>
+                    <p className="font-bold text-gray-800 dark:text-white text-sm">{invoice.customer_name}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500">{invoice.customer_email}</p>
                   </div>
                 </div>
               </td>
-              <td className="p-4 text-gray-500 text-sm">{invoice.createdOn}</td>
-              <td className="p-4 text-gray-600 text-sm font-medium">{invoice.total}</td>
-              <td className="p-4 text-gray-600 text-sm">{invoice.amountDue}</td>
-              <td className="p-4 text-gray-500 text-sm">{invoice.dueDate}</td>
+              <td className="p-4 text-gray-500 dark:text-slate-400 text-sm">{new Date(invoice.created_at).toLocaleDateString()}</td>
+              <td className="p-4 text-gray-600 dark:text-slate-300 text-sm font-medium">${invoice.total_amount.toLocaleString()}</td>
+              <td className="p-4 text-gray-600 dark:text-slate-300 text-sm">${invoice.amount_due.toLocaleString()}</td>
+              <td className="p-4 text-gray-500 dark:text-slate-400 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
               <td className="p-4">
                 <span className={`px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
-                  invoice.status === 'Paid' ? 'bg-green-50 text-green-500' : 
-                  invoice.status === 'Overdue' ? 'bg-red-50 text-red-500' : 
-                  invoice.status === 'Pending' ? 'bg-blue-50 text-blue-500' : 
-                  'bg-yellow-50 text-yellow-500'
+                  invoice.status === 'Paid' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' : 
+                  invoice.status === 'Overdue' ? 'bg-red-50 dark:bg-red-900/20 text-red-500' : 
+                  invoice.status === 'Pending' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' : 
+                  'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-500'
                 }`}>
                   {invoice.status}
                 </span>
               </td>
               <td className="p-4 text-right">
-                <button className="p-1 hover:bg-gray-100 rounded-full transition-colors">
-                  <MoreVertical size={16} className="text-gray-400" />
+                <button className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                  <MoreVertical size={16} className="text-gray-400 dark:text-slate-500" />
                 </button>
               </td>
             </tr>

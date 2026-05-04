@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calculator, CreditCard, User, Mail, DollarSign, Calendar, Plus, Trash2, FileText } from 'lucide-react';
+import { X, Calculator, CreditCard, User, Mail, DollarSign, Calendar, Plus, Trash2, FileText, Loader2 } from 'lucide-react';
 import { Invoice, InvoiceItem } from '../types/invoice';
+import { supabase } from '../utils/supabase';
+import { useAuth } from '../context/AuthContext';
 
 interface CreateInvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (invoice: Invoice) => void;
+  onSuccess: () => void;
 }
 
-export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInvoiceModalProps) {
+export default function CreateInvoiceModal({ isOpen, onClose, onSuccess }: CreateInvoiceModalProps) {
+  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -67,23 +71,44 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const baseAmount = Math.max(0, subTotal - (formData.discount || 0));
-    const newInvoice: Invoice = {
-      id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-      ...formData,
-      items,
-      subTotal,
-      total: baseAmount,
-      createdOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ', ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      taxAmount,
-      finalAmount,
-      amountDue: formData.status === 'Paid' ? 0 : finalAmount,
-      avatar: `https://picsum.photos/seed/${formData.name.split(' ')[0] || 'user'}/40/40`,
-    };
-    onAdd(newInvoice);
-    onClose();
+    if (!currentUser) return;
+    
+    setLoading(true);
+    try {
+      const invoiceNumber = `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+      
+      const { error } = await supabase
+        .from('invoices')
+        .insert({
+          invoice_number: invoiceNumber,
+          customer_name: formData.name,
+          customer_email: formData.email,
+          customer_avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(formData.name)}`,
+          total_amount: finalAmount,
+          amount_due: formData.status === 'Paid' ? 0 : finalAmount,
+          due_date: new Date(formData.dueDate).toISOString(),
+          status: formData.status,
+          user_id: currentUser.id,
+          items: items,
+          notes: formData.notes,
+          sub_total: subTotal,
+          tax_amount: taxAmount,
+          tax_rate: formData.taxRate,
+          discount: formData.discount,
+          transaction_id: formData.transactionId
+        });
+
+      if (error) throw error;
+      
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      alert(`Failed to save invoice: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -343,9 +368,17 @@ export default function CreateInvoiceModal({ isOpen, onClose, onAdd }: CreateInv
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all"
+              disabled={loading}
+              className="flex-1 px-4 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-100 dark:shadow-none transition-all disabled:bg-gray-400 flex items-center justify-center gap-2"
             >
-              Generate Invoice
+              {loading ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Generate Invoice'
+              )}
             </button>
           </div>
         </form>

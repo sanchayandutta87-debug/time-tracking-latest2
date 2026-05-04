@@ -1,342 +1,186 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronRight, Search, Calendar, Users, Clock, 
   Download, Printer, Filter, ChevronDown, Info,
-  TrendingUp, MousePointer2, BarChart3, Layout
+  TrendingUp, BarChart3, Loader2, MousePointer2
 } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { supabase } from '../utils/supabase';
 
-interface TimelineActivity {
-  start: string;
-  end: string;
-  type: 'active' | 'break' | 'idle';
-}
-
-interface TimelineRecord {
-  id: number;
-  name: string;
-  avatar: string;
-  status: 'online' | 'offline';
-  startTime: string;
-  endTime: string;
-  timeWorked: string;
-  activities: TimelineActivity[];
-}
-
-const timelineData: TimelineRecord[] = [
-  {
-    id: 1,
-    name: 'Shaun Farley',
-    avatar: 'https://picsum.photos/seed/shaun/40/40',
-    status: 'online',
-    startTime: '08:15 AM',
-    endTime: '06:30 PM',
-    timeWorked: '08h 15m',
-    activities: [
-      { start: '08:15', end: '10:00', type: 'active' },
-      { start: '10:00', end: '12:00', type: 'break' },
-      { start: '13:00', end: '15:30', type: 'active' },
-      { start: '16:00', end: '18:30', type: 'active' },
-    ]
-  },
-  {
-    id: 2,
-    name: 'Jenny Ellis',
-    avatar: 'https://picsum.photos/seed/jenny/40/40',
-    status: 'offline',
-    startTime: '09:20 AM',
-    endTime: '06:40 PM',
-    timeWorked: '09h 20m',
-    activities: [
-      { start: '09:20', end: '11:30', type: 'active' },
-      { start: '11:30', end: '13:30', type: 'break' },
-      { start: '14:00', end: '16:30', type: 'active' },
-      { start: '17:00', end: '18:40', type: 'active' },
-    ]
-  },
-  {
-    id: 3,
-    name: 'Leon Baxter',
-    avatar: 'https://picsum.photos/seed/leon/40/40',
-    status: 'online',
-    startTime: '08:00 AM',
-    endTime: '04:00 PM',
-    timeWorked: '08h 00m',
-    activities: [
-      { start: '08:00', end: '10:30', type: 'active' },
-      { start: '10:30', end: '12:30', type: 'break' },
-      { start: '13:30', end: '15:30', type: 'active' },
-      { start: '15:30', end: '16:00', type: 'active' },
-    ]
-  },
-  {
-    id: 4,
-    name: 'Karen Flores',
-    avatar: 'https://picsum.photos/seed/karen/40/40',
-    status: 'offline',
-    startTime: '08:25 AM',
-    endTime: '04:50 PM',
-    timeWorked: '08h 25m',
-    activities: [
-      { start: '08:25', end: '11:00', type: 'active' },
-      { start: '11:00', end: '13:00', type: 'break' },
-      { start: '14:00', end: '16:00', type: 'active' },
-      { start: '16:00', end: '16:50', type: 'active' },
-    ]
-  },
-  {
-    id: 5,
-    name: 'Charles Cline',
-    avatar: 'https://picsum.photos/seed/charles/40/40',
-    status: 'online',
-    startTime: '08:15 AM',
-    endTime: '04:30 PM',
-    timeWorked: '08h 15m',
-    activities: [
-      { start: '08:15', end: '10:45', type: 'active' },
-      { start: '10:45', end: '12:45', type: 'break' },
-      { start: '13:45', end: '15:45', type: 'active' },
-      { start: '15:45', end: '16:30', type: 'active' },
-    ]
-  },
-  {
-    id: 6,
-    name: 'Aliza Duncan',
-    avatar: 'https://picsum.photos/seed/aliza/40/40',
-    status: 'online',
-    startTime: '08:30 AM',
-    endTime: '05:00 PM',
-    timeWorked: '08h 30m',
-    activities: [
-      { start: '08:30', end: '11:15', type: 'active' },
-      { start: '11:15', end: '13:15', type: 'break' },
-      { start: '14:15', end: '16:15', type: 'active' },
-      { start: '16:15', end: '17:00', type: 'active' },
-    ]
-  }
-];
-
-const timeLabels = [
-  '06:00', '08:00', '10:00', '12:00', '02:00', '04:00', '06:00', '08:00'
-];
+export const timelineData: any[] = [];
 
 export default function TimelineReportView() {
+  const { darkMode } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState('All Employees');
+  const [timeline, setTimeline] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredData = timelineData.filter(record => 
+  const timeLabels = ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+
+  const fetchTimelineData = async () => {
+    setIsLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data, error } = await supabase
+        .from('time_entries')
+        .select(`
+          *,
+          users:user_id (full_name, avatar_url, last_seen),
+          projects (name)
+        `)
+        .gte('start_time', `${today}T00:00:00Z`)
+        .order('start_time', { ascending: true });
+
+      if (error) throw error;
+
+      const userMap: Record<string, any> = {};
+
+      (data || []).forEach(entry => {
+        const userId = entry.user_id;
+        if (!userMap[userId]) {
+          const lastSeenDate = entry.users?.last_seen ? new Date(entry.users.last_seen) : null;
+          const isOnline = lastSeenDate ? (Date.now() - lastSeenDate.getTime()) < 300000 : false;
+
+          userMap[userId] = {
+            id: userId,
+            name: entry.users?.full_name || 'Unknown',
+            avatar: entry.users?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(entry.users?.full_name || 'U')}&background=random`,
+            status: isOnline ? 'online' : 'offline',
+            startTime: '---',
+            endTime: '---',
+            project: entry.projects?.name || 'General Work',
+            activities: []
+          };
+        }
+
+        const start = new Date(entry.start_time);
+        const end = entry.end_time ? new Date(entry.end_time) : new Date();
+
+        if (userMap[userId].startTime === '---') {
+          userMap[userId].startTime = start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        }
+        userMap[userId].endTime = end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+        userMap[userId].activities.push({
+          start: start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+          end: end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+          type: 'active'
+        });
+      });
+
+      setTimeline(Object.values(userMap));
+    } catch (err) {
+      console.error('Timeline error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTimelineData();
+  }, []);
+
+  const filteredData = timeline.filter(record => 
     record.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const getPosition = (time: string) => {
-    const [h, m] = time.split(':').map(Number);
-    let totalMinutes = h * 60 + m;
-    // Adjust for PM if needed (simplified logic for the demo)
-    if (h < 6) totalMinutes += 12 * 60; 
-    
-    totalMinutes -= 6 * 60; // Start at 06:00
-    return (totalMinutes / (16 * 60)) * 100; // Show 16 hours (06:00 to 22:00)
-  };
-
-  const getWidth = (start: string, end: string) => {
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    let startMinutes = sh * 60 + sm;
-    let endMinutes = eh * 60 + em;
-    
-    if (sh < 6) startMinutes += 12 * 60;
-    if (eh < 6) endMinutes += 12 * 60;
-    
-    return ((endMinutes - startMinutes) / (16 * 60)) * 100;
-  };
-
   return (
-    <div className="p-8 bg-gray-50 min-h-full">
-      {/* Header */}
+    <div className={`p-8 min-h-full transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-800'}`}>
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-bold text-gray-800">Timeline Report</h1>
+        <h1 className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Timeline Report</h1>
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <span className="hover:text-blue-600 cursor-pointer">Home</span>
           <ChevronRight size={14} />
-          <span className="hover:text-blue-600 cursor-pointer">Report</span>
+          <span className="text-gray-600">Reports</span>
           <ChevronRight size={14} />
           <span className="text-gray-600">Timeline Report</span>
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-            <Clock size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Avg Work Time</p>
-            <h3 className="text-xl font-bold text-gray-800">8h 24m</h3>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-600">
-            <TrendingUp size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Productivity</p>
-            <h3 className="text-xl font-bold text-gray-800">94.2%</h3>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600">
-            <MousePointer2 size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Active Users</p>
-            <h3 className="text-xl font-bold text-gray-800">124</h3>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center text-purple-600">
-            <BarChart3 size={24} />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Reports</p>
-            <h3 className="text-xl font-bold text-gray-800">42</h3>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm mb-6">
+      <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm mb-8`}>
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="relative w-full lg:w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search Keyword" 
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              placeholder="Search employees..." 
+              className={`w-full pl-10 pr-4 py-2.5 border rounded-lg text-sm ${darkMode ? 'bg-black border-gray-800 text-white' : 'bg-gray-50 border-gray-200'}`}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-            <div className="relative">
-              <select 
-                className="appearance-none bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 pr-10 min-w-[180px]"
-                value={selectedEmployee}
-                onChange={(e) => setSelectedEmployee(e.target.value)}
-              >
-                <option>All Employees</option>
-                {timelineData.map(d => <option key={d.id}>{d.name}</option>)}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-            </div>
-
-            <div className="relative">
-              <input 
-                type="date" 
-                className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button className="p-2.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors shadow-sm" title="Print">
-                <Printer size={18} />
-              </button>
-              <button className="p-2.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:bg-gray-50 transition-colors shadow-sm" title="Export PDF">
-                <Download size={18} />
-              </button>
-            </div>
-          </div>
+          <button className={`p-2.5 border rounded-lg ${darkMode ? 'bg-black border-gray-800 text-gray-400' : 'bg-white border-gray-200 text-gray-500'}`}>
+            <Download size={18} />
+          </button>
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className={`rounded-xl border shadow-sm overflow-hidden relative min-h-[400px] ${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'}`}>
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 dark:bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+              <p className="text-sm font-bold text-gray-500">Generating activity timeline...</p>
+            </div>
+          </div>
+        )}
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1100px]">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-64">Name</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Start Time</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">End Time</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Time Worked</th>
-                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Timeline</th>
+              <tr className={`${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-gray-50 border-gray-100'} border-b`}>
+                <th className={`p-4 text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Employee</th>
+                <th className={`p-4 text-xs font-bold uppercase tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Today's Activity Timeline</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className={`divide-y ${darkMode ? 'divide-gray-800' : 'divide-gray-50'}`}>
               {filteredData.map((record) => (
-                <tr key={record.id} className="hover:bg-gray-50/50 transition-colors group">
-                  <td className="p-4">
+                <tr key={record.id} className={`transition-colors ${darkMode ? 'hover:bg-gray-900/50' : 'hover:bg-gray-50/50'}`}>
+                  <td className="p-4 w-64">
                     <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <img 
-                          src={record.avatar} 
-                          alt={record.name} 
-                          className="w-10 h-10 rounded-full object-cover"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${record.status === 'online' ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                      <img src={record.avatar} alt={record.name} className="w-10 h-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                      <div>
+                        <h4 className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{record.name}</h4>
+                        <span className="text-[10px] text-gray-400">{record.startTime} - {record.endTime}</span>
                       </div>
-                      <h4 className="text-sm font-bold text-gray-900">{record.name}</h4>
                     </div>
                   </td>
-                  <td className="p-4 text-sm text-gray-500 font-medium">{record.startTime}</td>
-                  <td className="p-4 text-sm text-gray-500 font-medium">{record.endTime}</td>
-                  <td className="p-4 text-sm text-gray-500 font-medium">{record.timeWorked}</td>
                   <td className="p-4">
-                    <div className="relative pt-2 pb-8">
-                      <div className="h-8 bg-gray-100 rounded-md overflow-hidden relative">
-                        {record.activities.map((act, i) => (
-                          <div 
-                            key={i}
-                            className={`absolute top-0 bottom-0 transition-all hover:brightness-90 cursor-help group/bar ${
-                              act.type === 'active' ? 'bg-emerald-500' : 
-                              act.type === 'break' ? 'bg-orange-400' : 'bg-gray-300'
-                            }`}
-                            style={{
-                              left: `${getPosition(act.start)}%`,
-                              width: `${getWidth(act.start, act.end)}%`
-                            }}
-                          >
-                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-[10px] rounded opacity-0 group-hover/bar:opacity-100 pointer-events-none whitespace-nowrap z-20">
-                              {act.start} - {act.end} ({act.type})
-                            </div>
-                          </div>
-                        ))}
+                    <div className="relative">
+                      <div className={`h-8 w-full rounded-lg relative overflow-hidden flex gap-0.5 ${darkMode ? 'bg-gray-900' : 'bg-gray-100'}`}>
+                        {record.activities.map((act: any, idx: number) => {
+                          const s = act.start.split(':');
+                          const e = act.end.split(':');
+                          const startMin = parseInt(s[0]) * 60 + parseInt(s[1]);
+                          const endMin = parseInt(e[0]) * 60 + parseInt(e[1]);
+                          const startPercent = ((startMin - 480) / 720) * 100;
+                          const widthPercent = ((endMin - startMin) / 720) * 100;
+
+                          return (
+                            <div 
+                              key={idx}
+                              className="absolute h-full bg-blue-600 opacity-80"
+                              style={{ left: `${Math.max(0, startPercent)}%`, width: `${Math.max(1, widthPercent)}%` }}
+                            />
+                          );
+                        })}
                       </div>
-                      {/* Time Labels */}
-                      <div className="absolute bottom-0 left-0 w-full flex justify-between px-[2%]">
-                        {timeLabels.map((label, i) => (
-                          <span key={i} className="text-[10px] text-gray-400 font-medium">{label}</span>
+                      <div className="flex justify-between mt-2">
+                        {timeLabels.filter((_, i) => i % 2 === 0).map((label, i) => (
+                          <span key={i} className="text-[10px] text-gray-400 font-bold">{label}</span>
                         ))}
                       </div>
                     </div>
                   </td>
                 </tr>
               ))}
+              {!isLoading && filteredData.length === 0 && (
+                <tr>
+                  <td colSpan={2} className="p-20 text-center text-gray-500 font-bold">No timeline activity found for today.</td>
+                </tr>
+              )}
             </tbody>
           </table>
-        </div>
-      </div>
-
-      {/* Legend & Info */}
-      <div className="mt-8 bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-emerald-500 rounded-sm" />
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Active Work</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-orange-400 rounded-sm" />
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Break Time</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-gray-300 rounded-sm" />
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Idle Time</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-gray-400">
-          <Info size={14} />
-          <p className="text-xs italic">Timeline data is synchronized with the desktop tracker and updated in real-time.</p>
         </div>
       </div>
     </div>

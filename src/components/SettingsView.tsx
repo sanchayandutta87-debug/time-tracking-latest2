@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   User, Building2, Briefcase, 
   Settings as SettingsIcon, Trash2, Camera, 
   ChevronRight, Globe, CheckCircle2,
   ChevronDown, Users,
-  Zap, Target, Wand2, Eye, EyeOff, Clock
+  Zap, Target, Wand2, Eye, EyeOff, Clock, X, Loader2, Calendar
 } from 'lucide-react';
+import { supabase } from '../utils/supabase';
 
 type SettingsTab = 'account' | 'company' | 'work' | 'system';
 type AccountSubTab = 'profile' | 'security';
@@ -100,24 +101,142 @@ export default function SettingsView() {
   ]);
 
   // Holidays State
-  const [holidays, setHolidays] = useState([
-    { id: 1, name: 'New Year\'s Day', date: 'Jan 01, 2026', type: 'Public', status: 'Passed' },
-    { id: 2, name: 'Good Friday', date: 'Apr 03, 2026', type: 'Public', status: 'Upcoming' },
-    { id: 3, name: 'Labor Day', date: 'May 01, 2026', type: 'Public', status: 'Upcoming' },
-    { id: 4, name: 'Independence Day', date: 'Jul 04, 2026', type: 'Public', status: 'Upcoming' },
-    { id: 5, name: 'Company Foundation Day', date: 'Oct 15, 2026', type: 'Company', status: 'Upcoming' },
-    { id: 6, name: 'Christmas Day', date: 'Dec 25, 2026', type: 'Public', status: 'Upcoming' }
-  ]);
+  const [holidays, setHolidays] = useState<any[]>([]);
+  const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
+  const [isLoadingHolidays, setIsLoadingHolidays] = useState(false);
+  const [newHoliday, setNewHoliday] = useState({
+    name: '',
+    status: 'Active'
+  });
+
+  const fetchHolidays = async () => {
+    setIsLoadingHolidays(true);
+    try {
+      const { data, error } = await supabase
+        .from('leave_types')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setHolidays(data || []);
+    } catch (error) {
+      console.error('Error fetching holiday types:', error);
+    } finally {
+      setIsLoadingHolidays(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'company' && activeSubTab === 'holidays') {
+      fetchHolidays();
+    }
+  }, [activeTab, activeSubTab]);
+
+  const handleAddHoliday = async () => {
+    if (!newHoliday.name.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('leave_types')
+        .insert({
+          name: newHoliday.name,
+          status: 'Active'
+        });
+
+      if (error) throw error;
+      setNewHoliday({ name: '', status: 'Active' });
+      setIsHolidayModalOpen(false);
+      fetchHolidays();
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error adding holiday type:', error);
+      alert('Error adding holiday type');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteHoliday = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this holiday?')) return;
+    try {
+      const { error } = await supabase
+        .from('holidays')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchHolidays();
+    } catch (error) {
+      console.error('Error deleting holiday:', error);
+    }
+  };
 
   // Work Settings State
-  const [leaveTypes, setLeaveTypes] = useState([
-    { id: 1, name: 'Casual Leave', date: '25 Nov 2025', status: 'Active' },
-    { id: 2, name: 'Sick Leave', date: '24 Sep 2025', status: 'Active' },
-    { id: 3, name: 'Maternity', date: '21 July 2025', status: 'Active' },
-    { id: 4, name: 'Paternity', date: '15 Mar 2025', status: 'Active' },
-    { id: 5, name: 'Annual Leave', date: '16 Feb 2025', status: 'Active' },
-    { id: 6, name: 'Permission', date: '18 Feb 2025', status: 'Active' }
-  ]);
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [newLeaveName, setNewLeaveName] = useState('');
+  const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
+
+  const fetchLeaveTypes = async () => {
+    setIsLoadingLeaves(true);
+    try {
+      const { data, error } = await supabase
+        .from('leave_types')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setLeaveTypes(data || []);
+    } catch (error) {
+      console.error('Error fetching leave types:', error);
+    } finally {
+      setIsLoadingLeaves(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'work' && activeSubTab === 'leave-types') {
+      fetchLeaveTypes();
+    }
+  }, [activeTab, activeSubTab]);
+
+  const handleAddLeaveType = async () => {
+    if (!newLeaveName.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('leave_types')
+        .insert({ name: newLeaveName, status: 'Active' });
+
+      if (error) throw error;
+      setNewLeaveName('');
+      setIsLeaveModalOpen(false);
+      fetchLeaveTypes();
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error adding leave type:', error);
+      alert('Error adding leave type');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteLeaveType = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this leave type?')) return;
+    try {
+      const { error } = await supabase
+        .from('leave_types')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchLeaveTypes();
+    } catch (error) {
+      console.error('Error deleting leave type:', error);
+    }
+  };
 
   const [shifts, setShifts] = useState([
     { id: 1, name: 'Morning Shift', time: '09:00 AM - 06:00 PM', members: 120, color: 'bg-blue-100 text-blue-600' },
@@ -1154,61 +1273,139 @@ export default function SettingsView() {
                       </div>
                     </div>
                   ) : activeSubTab === 'holidays' ? (
-                    <div className="space-y-6">
+                    <div className="space-y-8">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-sm font-bold text-gray-800 dark:text-white">Holiday Calendar</h3>
-                          <p className="text-xs text-gray-400">Manage public holidays and company-wide time off for 2026</p>
+                          <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                            <span className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
+                              <Calendar size={20} />
+                            </span>
+                            Holiday Types
+                          </h3>
+                          <p className="text-sm text-gray-400 mt-1">Define categories for employee holiday time off</p>
                         </div>
-                        <div className="flex gap-2">
-                          <button className="px-4 py-2 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-lg hover:bg-gray-200 transition-colors">
-                            Import Calendar
-                          </button>
-                          <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                            Add Holiday
-                          </button>
-                        </div>
+                        <button 
+                          onClick={() => setIsHolidayModalOpen(true)}
+                          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-2"
+                        >
+                          Add New Type
+                        </button>
                       </div>
-                      <div className="bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
-                        <table className="w-full text-left text-sm">
-                          <thead className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800">
-                            <tr>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Holiday Name</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Date</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Type</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Status</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300 text-right">Action</th>
+
+                      <div className="bg-white dark:bg-[#0A0A0B]/80 backdrop-blur-xl border border-gray-100 dark:border-white/5 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5">
+                        <table className="w-full text-left text-sm border-collapse">
+                          <thead>
+                            <tr className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-50 dark:border-white/5">
+                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Holiday Name</th>
+                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Created Date</th>
+                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status</th>
+                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Action</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {holidays.map((holiday) => (
-                              <tr key={holiday.id} className="hover:bg-white dark:bg-black transition-colors group">
-                                <td className="px-6 py-4 font-medium text-gray-800 dark:text-white">{holiday.name}</td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{holiday.date}</td>
-                                <td className="px-6 py-4">
-                                  <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${holiday.type === 'Public' ? 'bg-blue-50 text-blue-600' : 'bg-purple-50 text-purple-600'}`}>
-                                    {holiday.type}
-                                  </span>
+                          <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+                            {isLoadingHolidays ? (
+                              <tr>
+                                <td colSpan={4} className="px-8 py-16 text-center text-gray-400">
+                                  <Loader2 size={32} className="animate-spin text-blue-500 mx-auto mb-4" />
+                                  <p className="font-bold uppercase tracking-widest text-[10px]">Fetching Types...</p>
                                 </td>
-                                <td className="px-6 py-4">
-                                  <span className={`flex items-center gap-1.5 text-xs ${holiday.status === 'Passed' ? 'text-gray-400' : 'text-emerald-600 font-medium'}`}>
-                                    <div className={`w-1.5 h-1.5 rounded-full ${holiday.status === 'Passed' ? 'bg-gray-300' : 'bg-emerald-500'}`} />
+                              </tr>
+                            ) : holidays.length > 0 ? holidays.map((holiday) => (
+                              <tr key={holiday.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.01] transition-all duration-300 group">
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+                                      <Zap size={18} />
+                                    </div>
+                                    <p className="font-bold text-gray-800 dark:text-white tracking-tight">{holiday.name}</p>
+                                  </div>
+                                </td>
+                                <td className="px-8 py-6 text-gray-500 dark:text-gray-400 font-medium">
+                                  {new Date(holiday.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </td>
+                                <td className="px-8 py-6">
+                                  <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20">
                                     {holiday.status}
                                   </span>
                                 </td>
-                                <td className="px-6 py-4 text-right">
+                                <td className="px-8 py-6 text-right">
                                   <button 
-                                    onClick={() => setHolidays(holidays.filter(h => h.id !== holiday.id))}
-                                    className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleDeleteHoliday(holiday.id)}
+                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                   >
-                                    <Trash2 size={16} />
+                                    <Trash2 size={18} />
                                   </button>
                                 </td>
                               </tr>
-                            ))}
+                            )) : (
+                              <tr>
+                                <td colSpan={4} className="px-8 py-20 text-center text-gray-400 italic">No holiday types found.</td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Add Holiday Modal */}
+                      {isHolidayModalOpen && (
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+                          <div className="bg-white dark:bg-[#0A0A0B] rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden border border-white/10 relative">
+                            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none" />
+                            
+                            <div className="p-8 pb-4 flex justify-between items-center relative">
+                              <div>
+                                <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">Create Holiday Type</h3>
+                                <p className="text-sm text-gray-400 mt-1">This will be available for all employees</p>
+                              </div>
+                              <button 
+                                onClick={() => setIsHolidayModalOpen(false)} 
+                                className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition-all"
+                              >
+                                <X size={20} />
+                              </button>
+                            </div>
+
+                            <div className="p-8 pt-6 space-y-8 relative">
+                              <div className="space-y-3">
+                                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Type Name</label>
+                                <div className="relative group">
+                                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
+                                    <Target size={20} />
+                                  </div>
+                                  <input 
+                                    type="text" 
+                                    placeholder="e.g. Festival Leave"
+                                    value={newHoliday.name}
+                                    onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
+                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-black transition-all dark:text-white placeholder:text-gray-500"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex gap-4 pt-2">
+                                <button 
+                                  onClick={() => setIsHolidayModalOpen(false)}
+                                  className="flex-1 px-4 py-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-sm font-black rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
+                                >
+                                  Nevermind
+                                </button>
+                                <button 
+                                  onClick={handleAddHoliday}
+                                  disabled={isSaving}
+                                  className="flex-[2] px-4 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-black rounded-2xl hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
+                                >
+                                  {isSaving ? (
+                                    <>
+                                      <Loader2 size={18} className="animate-spin" />
+                                      Creating...
+                                    </>
+                                  ) : 'Create Now'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="p-20 text-center">
@@ -1252,7 +1449,10 @@ export default function SettingsView() {
                             <Wand2 size={14} />
                             Leave type
                           </button>
-                          <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
+                          <button 
+                            onClick={() => setIsLeaveModalOpen(true)}
+                            className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                          >
                             + Add New
                           </button>
                         </div>
@@ -1268,29 +1468,80 @@ export default function SettingsView() {
                               <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300 text-right"></th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {leaveTypes.map((item) => (
+                          <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
+                            {isLoadingLeaves ? (
+                              <tr>
+                                <td colSpan={4} className="px-6 py-10 text-center text-gray-400">Loading...</td>
+                              </tr>
+                            ) : leaveTypes.length > 0 ? leaveTypes.map((item) => (
                               <tr key={item.id} className="hover:bg-white dark:bg-black transition-colors group">
                                 <td className="px-6 py-4 font-medium text-gray-800 dark:text-white">{item.name}</td>
-                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">{item.date}</td>
+                                <td className="px-6 py-4 text-gray-500 dark:text-gray-400">
+                                  {new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </td>
                                 <td className="px-6 py-4">
-                                  <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md text-[10px] font-bold uppercase">
+                                  <span className="px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-md text-[10px] font-bold uppercase">
                                     {item.status}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                   <button 
-                                    onClick={() => setLeaveTypes(leaveTypes.filter(l => l.id !== item.id))}
+                                    onClick={() => handleDeleteLeaveType(item.id)}
                                     className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                                   >
                                     <Trash2 size={16} />
                                   </button>
                                 </td>
                               </tr>
-                            ))}
+                            )) : (
+                              <tr>
+                                <td colSpan={4} className="px-6 py-10 text-center text-gray-400">No leave types found.</td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
+
+                      {/* Add Leave Type Modal */}
+                      {isLeaveModalOpen && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                              <h3 className="font-bold text-gray-800 dark:text-white">Add New Leave Type</h3>
+                              <button onClick={() => setIsLeaveModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                <X size={20} />
+                              </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Leave Name</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. ABC Leave"
+                                  value={newLeaveName}
+                                  onChange={(e) => setNewLeaveName(e.target.value)}
+                                  className="w-full px-4 py-3 bg-gray-50 dark:bg-black border border-gray-100 dark:border-gray-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                />
+                              </div>
+                              <div className="flex gap-3 pt-2">
+                                <button 
+                                  onClick={() => setIsLeaveModalOpen(false)}
+                                  className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button 
+                                  onClick={handleAddLeaveType}
+                                  disabled={isSaving}
+                                  className="flex-1 px-4 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                >
+                                  {isSaving ? 'Creating...' : 'Create Type'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : activeSubTab === 'shift' ? (
                     <div className="space-y-6">

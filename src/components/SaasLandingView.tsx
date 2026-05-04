@@ -84,7 +84,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-100">
             <Clock size={20} />
           </div>
-          <span className="text-2xl font-black text-[#0a0a1a] tracking-tighter">Dreams Timer</span>
+          <span className="text-2xl font-black text-[#0a0a1a] tracking-tighter">CodeXConquer</span>
         </div>
         
         <div className="hidden lg:flex items-center gap-8">
@@ -168,7 +168,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                     <Clock size={18} />
                   </div>
-                  <span className="text-lg font-black text-[#0a0a1a] tracking-tighter">Dreams Timer</span>
+                  <span className="text-lg font-black text-[#0a0a1a] tracking-tighter">CodeXConquer</span>
                 </div>
                 <div className="space-y-8">
                   <div>
@@ -312,7 +312,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Time Tracking Web App ]</span>
-            <h2 className="text-4xl font-black text-[#0a0a1a]">Features of Our All-in-one Dreams Timer</h2>
+            <h2 className="text-4xl font-black text-[#0a0a1a]">Features of Our All-in-one CodeXConquer</h2>
           </div>
 
           <div className="flex flex-wrap justify-center gap-4 mb-16">
@@ -610,7 +610,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
             <div className="space-y-4">
               {[
                 { q: 'Is the Regular License the same thing?', a: 'To use it efficiently general knowledge of Front-end development is required. Also, keep in mind that the template does not contain the back end.', open: true },
-                { q: 'How do you clone a Dreams Timer?', a: '' },
+                { q: 'How do you clone a CodeXConquer?', a: '' },
                 { q: 'Can I track time manually and automatically?', a: '' },
                 { q: 'Does it integrate with other tools?', a: '' },
                 { q: 'Can I export reports to Excel or PDF?', a: '' },
@@ -857,7 +857,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
           </div>
 
           <div className="mt-12 flex flex-col md:flex-row justify-between items-center gap-6 text-gray-500 dark:text-gray-400 text-sm font-bold border-t border-white/5 pt-12">
-            <p>© 2026 Dreams Timer. All rights reserved.</p>
+            <p>© 2026 CodeXConquer. All rights reserved.</p>
             <div className="flex items-center gap-8">
               <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-white transition-colors">Terms & Conditions</a>
