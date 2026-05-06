@@ -14,10 +14,30 @@ import {
 } from 'recharts';
 
 
-export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }) {
+export default function UserDashboardView({ isRTL = false, onViewChange }: { isRTL?: boolean, onViewChange?: (view: string) => void }) {
   const { darkMode: isDarkMode } = useAppContext();
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [isOnBreak, setIsOnBreak] = useState(false);
+  const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
+  const [breakElapsed, setBreakElapsed] = useState('00:00:00');
+
+  useEffect(() => {
+    let interval: any;
+    if (isOnBreak && breakStartTime) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const diff = now.getTime() - breakStartTime.getTime();
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        setBreakElapsed(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      }, 1000);
+    } else {
+      setBreakElapsed('00:00:00');
+    }
+    return () => clearInterval(interval);
+  }, [isOnBreak, breakStartTime]);
   const [stats, setStats] = useState({
     hoursToday: '0h 0m',
     productivity: '0%',
@@ -31,9 +51,9 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
   const [trendData, setTrendData] = useState<any[]>([]);
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (isInitial = false) => {
     if (!currentUser) return;
-    setIsLoading(true);
+    if (isInitial) setIsLoading(true);
 
     try {
       const today = new Date();
@@ -53,12 +73,12 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
       const h = Math.floor(totalSeconds / 3600);
       const m = Math.floor((totalSeconds % 3600) / 60);
 
-      // 2. Fetch Weekly Data
-      const { data: weekEntries } = await supabase
-        .from('time_entries')
-        .select('start_time, duration_seconds, projects(name, color)')
+      // 2. Fetch Weekly Attendance Data
+      const { data: attendanceEntries } = await supabase
+        .from('attendance')
+        .select('*')
         .eq('user_id', currentUser.id)
-        .gte('start_time', startOfWeek.toISOString());
+        .gte('date', startOfWeek.toISOString().split('T')[0]);
 
       const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const weeklyMap: any = {};
@@ -71,15 +91,40 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
         weeklyMap[dayName] = { name: dayName, hours: 0, target: 8 };
       }
 
-      const projectMap: any = {};
-
-      (weekEntries || []).forEach(entry => {
-        const d = new Date(entry.start_time);
+      (attendanceEntries || []).forEach(record => {
+        const d = new Date(record.date);
         const dayName = days[d.getDay()];
+        
         if (weeklyMap[dayName]) {
-          weeklyMap[dayName].hours += (entry.duration_seconds || 0) / 3600;
+          if (record.check_in && record.check_out) {
+            const checkIn = new Date(record.check_in);
+            const checkOut = new Date(record.check_out);
+            let diffMs = checkOut.getTime() - checkIn.getTime();
+            
+            // Subtract break if applicable (mimicking AttendanceView logic exactly)
+            let breakMs = 0;
+            if (record.break_time === '01h 00m') {
+              breakMs = 3600000;
+            } else if (!record.break_time && diffMs > 4 * 3600000) {
+              breakMs = 3600000;
+            }
+            
+            diffMs = Math.max(0, diffMs - breakMs);
+            const hours = Math.max(0, diffMs / 3600000);
+            weeklyMap[dayName].hours = Number((weeklyMap[dayName].hours + hours).toFixed(2));
+          }
         }
+      });
 
+      // 2.1 Project Breakdown (Still needs time_entries for project association)
+      const { data: projectEntries } = await supabase
+        .from('time_entries')
+        .select('duration_seconds, projects(name, color)')
+        .eq('user_id', currentUser.id)
+        .gte('start_time', startOfWeek.toISOString());
+
+      const projectMap: any = {};
+      (projectEntries || []).forEach(entry => {
         const pName = entry.projects?.name || 'Unassigned';
         if (!projectMap[pName]) {
           projectMap[pName] = { name: pName, value: 0, color: entry.projects?.color || '#94a3b8' };
@@ -103,22 +148,28 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
         screenshot: entry.screenshot_url
       }));
 
-      // 4. My Projects (Projects the user has tracked time on)
-      const uniqueProjects: any[] = [];
-      const seenIds = new Set();
-      
-      (weekEntries || []).forEach(entry => {
-        if (entry.projects && !seenIds.has(entry.projects.id)) {
-          seenIds.add(entry.projects.id);
-          // Calculate project progress/role (mocking progress/role for now since schema doesn't have it)
-          uniqueProjects.push({
-            name: entry.projects.name,
-            role: currentUser?.role || 'Member',
-            progress: Math.floor(Math.random() * 40) + 60, // Mocked progress
-            color: entry.projects.color || '#6366f1'
-          });
+      // 4. My Projects (Projects the user is assigned to via tasks)
+      const { data: assignedTasks } = await supabase
+        .from('tasks')
+        .select('*, projects(*)')
+        .eq('assignee_id', currentUser.id);
+
+      const assignedProjectsMap: any = {};
+      (assignedTasks || []).forEach(task => {
+        if (task.projects) {
+          const p = task.projects;
+          if (!assignedProjectsMap[p.id]) {
+            assignedProjectsMap[p.id] = {
+              name: p.name,
+              role: currentUser?.role || 'Member',
+              progress: p.status === 'completed' ? 100 : Math.floor(Math.random() * 40) + 40, // Mock progress based on status
+              color: p.color || '#6366f1'
+            };
+          }
         }
       });
+
+      const uniqueProjects = Object.values(assignedProjectsMap);
 
       // 5. Productivity Trend (Last 7 weeks)
       const trend: any[] = [];
@@ -165,8 +216,114 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
     }
   };
 
+  const handleBreakToggle = async () => {
+    if (!currentUser) return;
+
+    if (!isOnBreak) {
+      // Start Break
+      setIsOnBreak(true);
+      setBreakStartTime(new Date());
+    } else {
+      // Stop Break
+      const stopTime = new Date();
+      const start = breakStartTime || new Date();
+      const diffSeconds = Math.floor((stopTime.getTime() - start.getTime()) / 1000);
+      
+      setIsOnBreak(false);
+      setBreakStartTime(null);
+
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        // Fetch current attendance
+        const { data: att } = await supabase
+          .from('attendance')
+          .select('break_time, id')
+          .eq('user_id', currentUser.id)
+          .eq('date', today)
+          .single();
+
+        if (att) {
+          // Parse current break time (e.g., "01h 30m")
+          let currentSeconds = 0;
+          if (att.break_time) {
+            const hMatch = att.break_time.match(/(\d+)h/);
+            const mMatch = att.break_time.match(/(\d+)m/);
+            if (hMatch) currentSeconds += parseInt(hMatch[1]) * 3600;
+            if (mMatch) currentSeconds += parseInt(mMatch[1]) * 60;
+          }
+
+          const totalSeconds = currentSeconds + diffSeconds;
+          const h = Math.floor(totalSeconds / 3600);
+          const m = Math.floor((totalSeconds % 3600) / 60);
+          const newBreakStr = `${h.toString().padStart(2, '0')}h ${m.toString().padStart(2, '0')}m`;
+
+          // Update DB
+          await supabase
+            .from('attendance')
+            .update({ break_time: newBreakStr })
+            .eq('id', att.id);
+            
+          fetchDashboardData(false);
+        }
+      } catch (error) {
+        console.error('Error updating break time:', error);
+      }
+    }
+  };
+
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
+    
+    // Refresh data every 5 minutes automatically
+    const refreshInterval = setInterval(() => {
+      fetchDashboardData(false);
+    }, 5 * 60 * 1000);
+    
+    if (!currentUser) return;
+
+    // Real-time subscription for instant updates
+    // Real-time subscription for instant updates
+    const timeChannel = supabase.channel(`user-time-${currentUser.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'time_entries',
+        filter: `user_id=eq.${currentUser.id}`
+      }, () => {
+        fetchDashboardData(false);
+      })
+      .subscribe();
+
+    // Real-time subscription for attendance updates
+    const attendanceChannel = supabase.channel(`user-attendance-${currentUser.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'attendance',
+        filter: `user_id=eq.${currentUser.id}`
+      }, () => {
+        fetchDashboardData(false);
+      })
+      .subscribe();
+
+    // Real-time subscription for task/assignment updates
+    const taskChannel = supabase.channel(`user-tasks-${currentUser.id}`)
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'tasks',
+        filter: `assignee_id=eq.${currentUser.id}`
+      }, () => {
+        fetchDashboardData(false);
+      })
+      .subscribe();
+
+    return () => {
+      clearInterval(refreshInterval);
+      supabase.removeChannel(timeChannel);
+      supabase.removeChannel(attendanceChannel);
+      supabase.removeChannel(taskChannel);
+    };
   }, [currentUser]);
   return (
     <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-[#0a0a1a]' : 'bg-gray-50'}`}>
@@ -252,7 +409,26 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#1f2937" : "#f3f4f6"} />
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} dy={10} reversed={isRTL} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
-                  <Tooltip cursor={{ fill: isDarkMode ? '#1f2937' : '#f9fafb' }} />
+                  <Tooltip 
+                    cursor={{ fill: isDarkMode ? '#1f2937' : '#f9fafb' }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const val = payload[0].value as number;
+                        const h = Math.floor(val);
+                        const m = Math.round((val - h) * 60);
+                        return (
+                          <div className={`${isDarkMode ? 'bg-[#1a1a2e] border-gray-800' : 'bg-white border-gray-100'} p-3 rounded-lg border shadow-xl`}>
+                            <p className="text-xs font-bold text-gray-400 mb-1">{payload[0].payload.name}</p>
+                            <p className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
+                              Hours: {h}h {m}m
+                            </p>
+                            <p className="text-[10px] text-gray-400">Target: 8h</p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
                   <Bar dataKey="target" fill={isDarkMode ? '#334155' : '#e2e8f0'} radius={[4, 4, 0, 0]} barSize={20} />
                   <Bar dataKey="hours" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={20} />
                 </BarChart>
@@ -340,10 +516,14 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>My Projects</h3>
             <div className="space-y-5">
               {projects.map((project, i) => (
-                <div key={i}>
+                <div 
+                  key={i} 
+                  className="cursor-pointer group/prj hover:bg-gray-100 dark:hover:bg-gray-800/30 p-2 rounded-xl transition-all"
+                  onClick={() => onViewChange && onViewChange('projects')}
+                >
                   <div className="flex justify-between items-center mb-2">
                     <div>
-                      <h4 className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{project.name}</h4>
+                      <h4 className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'} group-hover/prj:text-blue-500 transition-colors`}>{project.name}</h4>
                       <p className="text-[10px] text-gray-400 font-medium">{project.role}</p>
                     </div>
                     <span className={`text-xs font-bold`} style={{ color: project.color }}>{project.progress}%</span>
@@ -403,18 +583,18 @@ export default function UserDashboardView({ isRTL = false }: { isRTL?: boolean }
         <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm`}>
           <h3 className={`text-base font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button className={`flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${isDarkMode ? 'bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20' : 'bg-indigo-50 hover:bg-indigo-100 border border-indigo-100'}`}>
-              <Timer size={20} className="text-indigo-500" />
+            <button 
+              onClick={handleBreakToggle}
+              className={`flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${isOnBreak ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : (isDarkMode ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20' : 'bg-orange-50 hover:bg-orange-100 border border-orange-100')}`}
+            >
+              <Coffee size={20} className={isOnBreak ? 'text-white' : 'text-orange-500'} />
               <div className="text-left">
-                <p className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Start Timer</p>
-                <p className="text-[10px] text-gray-400">Track your time</p>
-              </div>
-            </button>
-            <button className={`flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${isDarkMode ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20' : 'bg-orange-50 hover:bg-orange-100 border border-orange-100'}`}>
-              <Coffee size={20} className="text-orange-500" />
-              <div className="text-left">
-                <p className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Break</p>
-                <p className="text-[10px] text-gray-400">Take a break</p>
+                <p className={`text-xs font-bold ${isOnBreak ? 'text-white' : (isDarkMode ? 'text-white' : 'text-gray-800')}`}>
+                  {isOnBreak ? 'End Break' : 'Break'}
+                </p>
+                <p className={`text-[10px] ${isOnBreak ? 'text-orange-100' : 'text-gray-400'}`}>
+                  {isOnBreak ? breakElapsed : 'Take a break'}
+                </p>
               </div>
             </button>
             <button className={`flex items-center gap-3 p-4 rounded-xl transition-all hover:scale-[1.02] ${isDarkMode ? 'bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/20' : 'bg-pink-50 hover:bg-pink-100 border border-pink-100'}`}>

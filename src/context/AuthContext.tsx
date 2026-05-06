@@ -7,7 +7,7 @@ export interface AuthUser {
   fullName: string;
   email: string;
   jobTitle: string;
-  role: 'management' | 'employee';
+  role: 'Administrator' | 'Employee';
   avatar: string;
   phone: string;
   address: string;
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         fullName: data.full_name,
         email: data.email,
         jobTitle: data.job_title || '',
-        role: data.role || 'employee',
+        role: data.role || 'Employee',
         avatar: data.avatar_url || '',
         phone: data.phone || '',
         address: data.address || '',
@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
             email: user.email,
             avatar_url: user.user_metadata.avatar_url,
-            role: 'admin',
+            role: 'Administrator',
           });
         
         if (!insertError) {
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         id: user.id,
         email: user.email!,
         fullName: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
-        role: 'user',
+        role: 'Employee',
         avatar: user.user_metadata.avatar_url || '',
         provider: user.app_metadata.provider as any
       } as AuthUser;
@@ -371,11 +371,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error updating profile:', error);
-      return;
+      return { success: false, error: error.message };
     }
 
     // 2. Update local state
     setCurrentUser(prev => prev ? { ...prev, ...data } : null);
+    return { success: true };
   };
 
   // Update password

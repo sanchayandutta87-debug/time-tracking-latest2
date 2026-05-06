@@ -8,6 +8,7 @@ import {
   LayoutDashboard, Users, UserPlus, Box, List, Grid, Menu, Bell, Moon,
   Loader2
 } from 'lucide-react';
+import AddEmployeeModal from './AddEmployeeModal';
 import { 
   ResponsiveContainer, AreaChart, Area, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
@@ -29,6 +30,8 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
   const [membersTable, setMembersTable] = useState<any[]>([]);
   const [projectWorkforce, setProjectWorkforce] = useState<any[]>([]);
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -292,6 +295,11 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
       console.error(`Detailed error during ${action} request:`, error);
       alert(`Action Failed: ${error.message || 'Unknown error'}. Please ensure the database schema is updated.`);
     }
+  };
+
+  const handleSaveEmployee = async (employeeData: any) => {
+    // Refresh data after saving
+    await fetchDashboardData();
   };
 
   return (
@@ -575,7 +583,13 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden`}>
           <div className={`p-6 border-b flex justify-between items-center ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
             <h3 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Members</h3>
-            <button className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">
+            <button 
+              onClick={() => {
+                setEditingEmployee(null);
+                setIsModalOpen(true);
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+            >
               <Plus size={18} /> Add New
             </button>
           </div>
@@ -621,6 +635,13 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
           </div>
         </div>
       </div>
+
+      <AddEmployeeModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSave={handleSaveEmployee}
+        employeeToEdit={editingEmployee}
+      />
     </div>
   );
 }

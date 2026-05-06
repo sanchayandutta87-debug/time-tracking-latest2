@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Users, Briefcase, Award, FileText, ClipboardList } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../utils/supabase';
 
 interface Team {
   id: string;
@@ -23,7 +24,7 @@ interface Team {
 interface AddTeamModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (team: Team) => void;
+  onSave: (team: any) => void;
   teamToEdit?: Team | null;
 }
 
@@ -38,43 +39,75 @@ const COLORS = [
 
 export default function AddTeamModal({ isOpen, onClose, onSave, teamToEdit }: AddTeamModalProps) {
   const { darkMode } = useAppContext();
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [selectedManagerId, setSelectedManagerId] = useState<string>(teamToEdit?.lead || '');
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: teamToEdit?.name || '',
-    lead: teamToEdit?.lead || '',
     color: teamToEdit?.color || COLORS[0],
     status: teamToEdit?.status || 'Active',
     description: teamToEdit?.description || '',
-    memberNames: teamToEdit?.memberNames?.join(', ') || '',
     tasks: teamToEdit?.tasks?.join(', ') || ''
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllUsers();
+      if (teamToEdit) {
+        // Find user by lead name if it's not a UUID
+        // But better to store manager_id directly
+      }
+    }
+  }, [isOpen]);
+
+  const fetchAllUsers = async () => {
+    const { data } = await supabase.from('users').select('id, full_name, avatar_url');
+    setAllUsers(data || []);
+  };
+
+  const toggleMember = (id: string) => {
+    setSelectedMemberIds(prev => 
+      prev.includes(id) ? prev.filter(mid => mid !== id) : [...prev, id]
+    );
+  };
+
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const shortName = formData.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'TM';
-    const memberNamesArr = formData.memberNames.split(',').map(n => n.trim()).filter(n => n !== '');
-    const tasksArr = formData.tasks.split(',').map(t => t.trim()).filter(t => t !== '');
-    
-    const newTeam: Team = {
-      id: teamToEdit?.id || `TEAM-${Date.now()}`,
-      name: formData.name,
-      shortName,
-      color: formData.color,
-      lead: formData.lead,
-      leadAvatar: teamToEdit?.leadAvatar || `https://picsum.photos/seed/${formData.lead.replace(/\s/g, '') || 'lead'}/40/40`,
-      members: memberNamesArr.length || teamToEdit?.members || Math.floor(Math.random() * 10) + 2,
-      memberNames: memberNamesArr,
-      tasks: tasksArr,
-      description: formData.description,
-      performance: teamToEdit?.performance || Math.floor(Math.random() * 40) + 60,
-      trend: teamToEdit ? teamToEdit.trend : (Math.random() > 0.5 ? 'up' : 'down'),
-      hours: teamToEdit?.hours || '0h 00m',
-      createdDate: teamToEdit?.createdDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      status: formData.status as 'Active' | 'Inactive'
-    };
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const shortName = formData.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase() || 'TM';
+      const tasksArr = formData.tasks.split(',').map(t => t.trim()).filter(t => t !== '');
+      
+      const selectedManager = allUsers.find(u => u.id === selectedManagerId);
 
-    onSave(newTeam);
+      const teamForDb = {
+        id: teamToEdit?.id,
+        name: formData.name,
+        short_name: shortName,
+        color: formData.color,
+        lead_name: selectedManager?.full_name || 'No Lead',
+        lead_avatar: selectedManager?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedManager?.full_name || 'Lead')}&background=random`,
+        performance: teamToEdit?.performance || Math.floor(Math.random() * 40) + 60,
+        trend: teamToEdit ? teamToEdit.trend : (Math.random() > 0.5 ? 'up' : 'down'),
+        total_hours: teamToEdit?.hours || '0h 00m',
+        status: formData.status,
+        description: formData.description,
+        manager_id: selectedManagerId || null
+      };
+
+      await onSave({
+        ...teamForDb,
+        selectedMemberIds
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -115,17 +148,26 @@ export default function AddTeamModal({ isOpen, onClose, onSave, teamToEdit }: Ad
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Team Lead *</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Team Lead / Manager *</label>
                 <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border focus-within:ring-2 focus-within:ring-blue-500/20 transition-all ${darkMode ? 'bg-black border-gray-700' : 'bg-white dark:bg-black border-gray-200 dark:border-gray-700'}`}>
                   <Award size={16} className={darkMode ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400'} />
-                  <input 
-                    type="text" 
-                    required 
-                    className={`bg-transparent outline-none w-full text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900 dark:text-white'}`} 
-                    placeholder="Manager or Lead Name"
-                    value={formData.lead}
-                    onChange={e => setFormData({...formData, lead: e.target.value})}
-                  />
+                  <select 
+                    required
+                    className={`bg-transparent outline-none w-full text-sm font-bold appearance-none cursor-pointer ${darkMode ? 'text-white' : 'text-gray-900'}`}
+                    value={selectedManagerId}
+                    onChange={e => setSelectedManagerId(e.target.value)}
+                  >
+                    <option value="" className={darkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}>Select a Lead</option>
+                    {allUsers.map(user => (
+                      <option 
+                        key={user.id} 
+                        value={user.id} 
+                        className={darkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}
+                      >
+                        {user.full_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -144,17 +186,32 @@ export default function AddTeamModal({ isOpen, onClose, onSave, teamToEdit }: Ad
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Team Members (Comma separated)</label>
-                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border focus-within:ring-2 focus-within:ring-blue-500/20 transition-all ${darkMode ? 'bg-black border-gray-700' : 'bg-white dark:bg-black border-gray-200 dark:border-gray-700'}`}>
-                  <Users size={16} className={darkMode ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400'} />
-                  <input 
-                    type="text" 
-                    className={`bg-transparent outline-none w-full text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900 dark:text-white'}`} 
-                    placeholder="Alice, Bob, Charlie..."
-                    value={formData.memberNames}
-                    onChange={e => setFormData({...formData, memberNames: e.target.value})}
-                  />
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Team Members</label>
+                <div className={`space-y-2 max-h-40 overflow-y-auto p-3 rounded-xl border ${darkMode ? 'bg-black border-gray-700' : 'bg-white border-gray-200'} custom-scrollbar`}>
+                  {allUsers.length > 0 ? (
+                    allUsers.map(user => (
+                      <label key={user.id} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${selectedMemberIds.includes(user.id) ? (darkMode ? 'bg-blue-600/20' : 'bg-blue-50') : (darkMode ? 'hover:bg-white/5' : 'hover:bg-gray-50')}`}>
+                        <input 
+                          type="checkbox" 
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          checked={selectedMemberIds.includes(user.id)}
+                          onChange={() => toggleMember(user.id)}
+                        />
+                        <div className="flex items-center gap-2">
+                          <img 
+                            src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=random`} 
+                            className="w-6 h-6 rounded-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                          <span className={`text-sm font-bold ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{user.full_name}</span>
+                        </div>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-xs text-gray-500 text-center py-4 italic">No employees found to add.</p>
+                  )}
                 </div>
+                <p className="mt-2 text-[10px] text-gray-400 font-medium italic">Selected: {selectedMemberIds.length} members</p>
               </div>
 
               <div>
@@ -223,9 +280,10 @@ export default function AddTeamModal({ isOpen, onClose, onSave, teamToEdit }: Ad
           <button 
             type="submit" 
             form="team-form"
-            className="bg-blue-600 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all hover:-translate-y-0.5 active:translate-y-0"
+            disabled={isSaving}
+            className={`bg-blue-600 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition-all hover:-translate-y-0.5 active:translate-y-0 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {teamToEdit ? 'Save Changes' : 'Create Team'}
+            {isSaving ? 'Processing...' : (teamToEdit ? 'Save Changes' : 'Create Team')}
           </button>
         </div>
       </div>

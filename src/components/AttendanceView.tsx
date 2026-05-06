@@ -112,6 +112,8 @@ export default function AttendanceView() {
         let displayBreak = record.break_time || '00h 00m';
         let finalCheckOut = record.check_out;
         
+        const finalizationUpdates: any[] = [];
+        
         if (checkInTime && !record.check_out) {
           const hoursSinceIn = (now.getTime() - checkInTime.getTime()) / 3600000;
           
@@ -126,12 +128,35 @@ export default function AttendanceView() {
              
              finalCheckOut = autoOut.toISOString();
              displayBreak = '01h 00m';
+             
+             // Queue update to database
+             finalizationUpdates.push(
+               supabase.from('attendance').update({
+                 check_out: finalCheckOut,
+                 break_time: displayBreak,
+                 status: 'present',
+                 actual_end: formatTime(finalCheckOut)
+               }).eq('id', record.id)
+             );
           }
         } else if (checkInTime && checkOutTime && !record.break_time) {
            const hoursWorked = (checkOutTime.getTime() - checkInTime.getTime()) / 3600000;
            if (hoursWorked > 4) {
              displayBreak = '01h 00m';
+             // Also update break time if missing
+             finalizationUpdates.push(
+               supabase.from('attendance').update({
+                 break_time: displayBreak
+               }).eq('id', record.id)
+             );
            }
+        }
+
+        // Run updates if any (in background)
+        if (finalizationUpdates.length > 0) {
+          Promise.all(finalizationUpdates).then(() => {
+            console.log(`Auto-finalized ${finalizationUpdates.length} attendance records`);
+          });
         }
 
         let totalWorkedStr = '00h 00m 00s';
@@ -182,8 +207,44 @@ export default function AttendanceView() {
 
   useEffect(() => {
     fetchAttendance();
+
+    const channel = supabase.channel('attendance-view-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'attendance' }, () => {
+        fetchAttendance();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
+
+  const filteredAttendance = useMemo(() => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    // Start of week (Sunday)
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    
+    // Start of month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    return attendance.filter(record => {
+      const recordDate = new Date(record.date);
+      
+      if (activeTab === 'By Day') {
+        return record.date === today;
+      } else if (activeTab === 'By Week') {
+        return recordDate >= startOfWeek;
+      } else if (activeTab === 'By Month') {
+        return recordDate >= startOfMonth;
+      }
+      return true;
+    });
+  }, [attendance, activeTab]);
 
   return (
     <div className="p-8 bg-gray-50 dark:bg-transparent min-h-full">
@@ -255,7 +316,7 @@ export default function AttendanceView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-              {attendance.map((row) => (
+              {filteredAttendance.map((row) => (
                 <tr key={row.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.02] transition-all duration-300 group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">

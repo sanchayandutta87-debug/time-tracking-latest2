@@ -13,7 +13,11 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ currentView, onViewChange }: { currentView: string, onViewChange: (view: string) => void }) {
   const { darkMode } = useAppContext();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  
+  // Role Detection
+  const isAdmin = user?.role === 'Administrator';
+  const isEmployee = user?.role === 'Employee';
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isBaseUIOpen, setIsBaseUIOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -82,14 +86,16 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
             
             {(isDashboardOpen || isDashboardActive) && (
               <div className={`ml-4 mt-1 space-y-1 border-l-2 ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
-                <div 
-                  onClick={() => handleDashboardSwitch('admin-dashboard')}
-                  className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === 'admin-dashboard' ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}
-                >
-                  {currentView === 'admin-dashboard' && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full" />}
-                  <span className={`${currentView === 'admin-dashboard' ? 'text-blue-500' : 'text-gray-600 dark:text-gray-300'} font-bold mr-1`}>−</span>
-                  <span className="text-sm">Admin Dashboard</span>
-                </div>
+                {isAdmin && (
+                  <div 
+                    onClick={() => handleDashboardSwitch('admin-dashboard')}
+                    className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === 'admin-dashboard' ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}
+                  >
+                    {currentView === 'admin-dashboard' && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full" />}
+                    <span className={`${currentView === 'admin-dashboard' ? 'text-blue-500' : 'text-gray-600 dark:text-gray-300'} font-bold mr-1`}>−</span>
+                    <span className="text-sm">Admin Dashboard</span>
+                  </div>
+                )}
                 <div 
                   onClick={() => handleDashboardSwitch('user-dashboard')}
                   className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === 'user-dashboard' ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}
@@ -111,30 +117,22 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
               <SidebarItem icon={<UserCheck size={18} />} label="Attendance" active={currentView === 'attendance'} onClick={() => onViewChange('attendance')} darkMode={darkMode} />
               <SidebarItem icon={<Umbrella size={18} />} label="Leave" active={currentView === 'leave'} onClick={() => onViewChange('leave')} darkMode={darkMode} />
               <SidebarItem icon={<Briefcase size={18} />} label="Projects" active={currentView === 'projects'} onClick={() => onViewChange('projects')} darkMode={darkMode} />
+              <SidebarItem icon={<Activity size={18} />} label="Live Tracking" active={currentView === 'live-tracking'} onClick={() => onViewChange('live-tracking')} darkMode={darkMode} />
+              <SidebarItem icon={<Folder size={18} />} label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} darkMode={darkMode} />
               
-              {/* Reports with sub-items */}
+              {/* Reports with sub-items - LOCKED */}
               <div className="mt-1">
                 <div 
-                  onClick={() => setIsUserReportsOpen(!isUserReportsOpen)}
-                  className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${currentView.startsWith('report-') || isUserReportsOpen ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:bg-black')}`}
+                  className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
                 >
                   <div className="flex items-center gap-3">
                     <ClipboardList size={18} />
                     <span className="text-sm font-medium">Reports</span>
                   </div>
-                  {isUserReportsOpen || currentView.startsWith('report-') ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-                {(isUserReportsOpen || currentView.startsWith('report-')) && (
-                  <div className={`ml-4 mt-1 space-y-1 border-l-2 ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
-                    {reportSubItems.map((item) => (
-                      <div key={item.view} onClick={() => onViewChange(item.view)} className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === item.view ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}>
-                        {currentView === item.view && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full" />}
-                        <span className={`${currentView === item.view ? 'text-blue-500' : (darkMode ? 'text-gray-700' : 'text-gray-300')} font-bold mr-1`}>−</span>
-                        <span className="text-sm">{item.label}</span>
-                      </div>
-                    ))}
+                  <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                    Locked
                   </div>
-                )}
+                </div>
               </div>
             </nav>
 
@@ -200,27 +198,31 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
 
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Workforce</p>
         <nav className="space-y-1">
-          <div 
-            onClick={() => onViewChange('employees')}
-            className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'employees' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-          >
-            <User size={18} />
-            <span className="text-sm font-medium">Employees</span>
-          </div>
-          <div 
-            onClick={() => onViewChange('teams')}
-            className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'teams' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-          >
-            <Users size={18} />
-            <span className="text-sm font-medium">Teams</span>
-          </div>
-          <div 
-            onClick={() => onViewChange('clients')}
-            className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'clients' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-          >
-            <Users size={18} />
-            <span className="text-sm font-medium">Clients</span>
-          </div>
+          {isAdmin && (
+            <>
+              <div 
+                onClick={() => onViewChange('employees')}
+                className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'employees' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+              >
+                <User size={18} />
+                <span className="text-sm font-medium">Employees</span>
+              </div>
+              <div 
+                onClick={() => onViewChange('teams')}
+                className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'teams' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+              >
+                <Users size={18} />
+                <span className="text-sm font-medium">Teams</span>
+              </div>
+              <div 
+                onClick={() => onViewChange('clients')}
+                className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'clients' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+              >
+                <Users size={18} />
+                <span className="text-sm font-medium">Clients</span>
+              </div>
+            </>
+          )}
 
           <div 
             onClick={() => onViewChange('activity-logs')}
@@ -247,44 +249,37 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
           </>
         )}
 
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Administrator</p>
-        <nav className="space-y-1">
-          <div className="mt-1">
-            <div 
-              onClick={() => setIsReportsOpen(!isReportsOpen)}
-              className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${currentView.startsWith('report-') || isReportsOpen ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-            >
-              <div className="flex items-center gap-3">
-                <ClipboardList size={18} />
-                <span className="text-sm font-medium">Reports</span>
-              </div>
-              {isReportsOpen || currentView.startsWith('report-') ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </div>
-            
-            {(isReportsOpen || currentView.startsWith('report-')) && (
-              <div className={`ml-4 mt-1 space-y-1 border-l-2 ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
-                {reportSubItems.map((item) => (
-                  <div 
-                    key={item.view}
-                    onClick={() => onViewChange(item.view)}
-                    className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === item.view ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}
-                  >
-                    {currentView === item.view && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full" />}
-                    <span className={`${currentView === item.view ? 'text-blue-500' : (darkMode ? 'text-gray-700 dark:text-gray-200' : 'text-gray-300')} font-bold mr-1`}>−</span>
-                    <span className={`text-sm ${currentView === item.view ? 'text-blue-500' : (darkMode ? 'text-gray-600 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400')}`}>{item.label}</span>
+        {isAdmin && (
+          <>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Administrator</p>
+            <nav className="space-y-1">
+              <div className="mt-1">
+                <div 
+                  className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ClipboardList size={18} />
+                    <span className="text-sm font-medium">Reports</span>
                   </div>
-                ))}
+                  <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                    Locked
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-          <div 
-            onClick={() => onViewChange('settings')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'settings' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <Settings size={18} />
-            <span className="text-sm font-medium">Settings</span>
-          </div>
-        </nav>
+              <div 
+                className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Settings size={18} />
+                  <span className="text-sm font-medium">Settings</span>
+                </div>
+                <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                  Locked
+                </div>
+              </div>
+            </nav>
+          </>
+        )}
 
           </>
         )}

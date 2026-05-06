@@ -68,7 +68,9 @@ const ProfileView = () => {
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        setSaveMessage(null);
+        
         // Handle password change if fields are filled
         if (profileData.newPassword) {
             if (profileData.newPassword !== profileData.confirmPassword) {
@@ -79,30 +81,41 @@ const ProfileView = () => {
                 setSaveMessage({ type: 'error', text: 'New password must be at least 8 characters.' });
                 return;
             }
-            const pwResult = updatePassword(profileData.currentPassword, profileData.newPassword);
+            const pwResult = await updatePassword(profileData.newPassword);
             if (!pwResult.success) {
                 setSaveMessage({ type: 'error', text: pwResult.error || 'Password update failed.' });
                 return;
             }
         }
 
-        // Save profile data to AuthContext + localStorage
-        updateProfile({
-            fullName: `${profileData.firstName} ${profileData.lastName}`.trim(),
-            email: profileData.email,
-            phone: profileData.phone,
-            address: profileData.address,
-            country: profileData.country,
-            state: profileData.state,
-            city: profileData.city,
-            postalCode: profileData.postalCode,
-            avatar: profileImage,
-        });
+        try {
+            console.log('Attempting to save profile data:', profileData);
+            // Save profile data to Supabase via AuthContext
+            const result = await updateProfile({
+                fullName: `${profileData.firstName} ${profileData.lastName}`.trim(),
+                email: profileData.email,
+                phone: profileData.phone,
+                address: profileData.address,
+                country: profileData.country,
+                state: profileData.state,
+                city: profileData.city,
+                postalCode: profileData.postalCode,
+                avatar: profileImage,
+            });
 
-        // Reset password fields
-        setProfileData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
-        setSaveMessage({ type: 'success', text: 'Profile updated successfully!' });
-        setTimeout(() => setSaveMessage(null), 3000);
+            if (result && !result.success) {
+                setSaveMessage({ type: 'error', text: result.error || 'Failed to update profile.' });
+                return;
+            }
+
+            // Reset password fields
+            setProfileData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
+            setSaveMessage({ type: 'success', text: 'Profile updated successfully!' });
+            setTimeout(() => setSaveMessage(null), 5000);
+        } catch (err: any) {
+            console.error('Profile update error:', err);
+            setSaveMessage({ type: 'error', text: err.message || 'An unexpected error occurred. Please try again.' });
+        }
     };
 
     const handleCancel = () => {
@@ -166,12 +179,18 @@ const ProfileView = () => {
                                     </div>
                                     <div className="flex-1 flex items-center gap-6">
                                         <div className="relative group">
-                                            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-100 dark:border-slate-700">
-                                                <img 
-                                                    src={profileImage} 
-                                                    alt="Profile" 
-                                                    className="w-full h-full object-cover"
-                                                />
+                                            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-100 dark:border-slate-700 bg-blue-600 flex items-center justify-center">
+                                                {profileImage ? (
+                                                    <img 
+                                                        src={profileImage} 
+                                                        alt="Profile" 
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-white text-2xl font-bold">
+                                                        {(profileData.firstName || 'U').charAt(0).toUpperCase()}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="space-y-2">

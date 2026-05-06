@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, User, Briefcase, Mail, Phone, MapPin, Star, Clock, Camera, Upload, Trash2, Building2, Calendar, Award } from 'lucide-react';
+import { X, User, Briefcase, Mail, Phone, MapPin, Star, Clock, Building2, Calendar } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 interface Employee {
@@ -30,7 +30,6 @@ const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 
 export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEdit }: AddEmployeeModalProps) {
   const { darkMode } = useAppContext();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<Partial<Employee>>({
     name: '',
@@ -70,21 +69,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, avatar: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setFormData({ ...formData, avatar: DEFAULT_AVATAR });
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,34 +108,6 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-10">
-          {/* Profile Image Section */}
-          <div className={`flex flex-col items-center justify-center p-12 rounded-[3rem] border-2 border-dashed transition-all ${darkMode ? 'bg-black border-gray-700' : 'bg-white dark:bg-black border-gray-200 dark:border-gray-700 shadow-inner'}`}>
-            <div className="relative group shrink-0">
-              <div className="absolute -inset-4 bg-gradient-to-tr from-blue-600 via-purple-600 to-pink-600 rounded-[2.5rem] blur-2xl opacity-10 group-hover:opacity-40 transition duration-1000"></div>
-              <div className="relative w-44 h-44 rounded-[2.5rem] overflow-hidden border-8 border-white dark:border-gray-800 shadow-2xl">
-                <img src={formData.avatar} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="Profile" />
-                <button 
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white gap-2"
-                >
-                  <Upload size={32} />
-                  <span className="text-xs font-black uppercase tracking-widest">Update Photo</span>
-                </button>
-              </div>
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" accept="image/*" />
-            </div>
-
-            <div className="mt-8 flex flex-col items-center gap-4">
-              <button 
-                type="button"
-                onClick={handleRemoveImage}
-                className={`flex items-center gap-2 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all ${darkMode ? 'bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white shadow-lg shadow-red-500/10' : 'bg-red-50 dark:bg-red-900/20 text-red-500 hover:bg-red-500 hover:text-white shadow-lg shadow-red-500/5'}`}
-              >
-                <Trash2 size={14} /> Remove Photo
-              </button>
-            </div>
-          </div>
 
           <div className="space-y-8">
             <h3 className={`text-xs font-black uppercase tracking-[0.3em] ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>Primary Information</h3>

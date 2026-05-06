@@ -77,9 +77,10 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
   ];
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-black overflow-y-auto font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth">
+    <div className="flex flex-col h-full bg-white dark:bg-[#0a0a1a] overflow-y-auto font-sans selection:bg-blue-100 selection:text-blue-900 scroll-smooth relative">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.05),transparent_50%)] pointer-events-none" />
       {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 lg:px-12 py-4 sticky top-0 bg-white dark:bg-black/90 backdrop-blur-md z-50 border-b border-gray-100 dark:border-gray-800">
+      <nav className="flex items-center justify-between px-6 lg:px-12 py-4 sticky top-0 bg-white dark:bg-[#0a0a1a]/90 backdrop-blur-md z-50 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-100">
             <Clock size={20} />
@@ -114,7 +115,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
       </nav>
 
       {/* Hero Section */}
-      <section className="relative px-6 lg:px-12 pt-20 pb-32 overflow-hidden bg-gradient-to-br from-blue-50/50 via-white to-blue-50/20">
+      <section className="relative px-6 lg:px-12 pt-20 pb-32 overflow-hidden bg-gradient-to-br from-blue-50/50 via-white to-blue-50/20 dark:from-blue-900/10 dark:via-[#0a0a1a] dark:to-[#0a0a1a]">
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-16 items-center">
           <motion.div 
             initial={{ opacity: 0, x: -30 }}
@@ -125,7 +126,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
               <span className="text-orange-500">🔥</span> Workforce Productivity Analytics Software
             </div>
             
-            <h1 className="text-5xl lg:text-[72px] font-black text-[#1a1a3a] leading-[1.05] mb-8 tracking-tight">
+            <h1 className="text-5xl lg:text-[72px] font-black text-[#1a1a3a] dark:text-white leading-[1.05] mb-8 tracking-tight">
               AI Powered Real-Time Insights <span className="text-orange-500">for Smarter Workflows.</span>
             </h1>
             
@@ -262,7 +263,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Features ]</span>
-            <h2 className="text-4xl font-black text-[#0a0a1a]">Explore Highlighted Features</h2>
+            <h2 className="text-4xl font-black text-[#0a0a1a] dark:text-white">Explore Highlighted Features</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-20">
@@ -312,7 +313,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <span className="text-pink-500 font-bold text-sm uppercase tracking-widest mb-4 block">[ Time Tracking Web App ]</span>
-            <h2 className="text-4xl font-black text-[#0a0a1a]">Features of Our All-in-one CodeXConquer</h2>
+            <h2 className="text-4xl font-black text-[#0a0a1a] dark:text-white">Features of Our All-in-one CodeXConquer</h2>
           </div>
 
           <div className="flex flex-wrap justify-center gap-4 mb-16">
@@ -330,7 +331,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
           <div className="bg-white dark:bg-black rounded-[32px] p-8 lg:p-12 border border-gray-100 dark:border-gray-800 shadow-xl grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div>
-                <h3 className="text-3xl font-black text-[#0a0a1a] mb-4">Time & Track</h3>
+                <h3 className="text-3xl font-black text-[#0a0a1a] dark:text-white mb-4">Time & Track</h3>
                 <p className="text-gray-500 dark:text-gray-400 leading-relaxed">Increased workload visibility enables you to boost productivity to 90%+ by eliminating roadblocks and creating more focus time.</p>
               </div>
               
@@ -347,7 +348,7 @@ export default function SaasLandingView({ onViewChange }: { onViewChange?: (view
                       {item.icon}
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-[#0a0a1a] mb-1">{item.title}</h4>
+                      <h4 className="text-lg font-bold text-[#0a0a1a] dark:text-white mb-1">{item.title}</h4>
                       <p className="text-gray-400 text-sm">{item.desc}</p>
                     </div>
                   </div>

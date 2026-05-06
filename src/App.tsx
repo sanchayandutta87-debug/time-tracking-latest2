@@ -60,11 +60,17 @@ import { useAuth } from './context/AuthContext';
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading, updatePresence } = useAuth();
+  const { darkMode, setDarkMode } = useAppContext();
 
   const [currentView, setCurrentView] = useState(() => {
     // 1. Check URL first
-    const path = window.location.pathname.replace('/', '');
-    if (path && path !== '') return path;
+    const path = decodeURIComponent(window.location.pathname.replace('/', '')).replace(' ', '-');
+    if (path && path !== '') {
+      // Normalize 'saas landing' to 'saas-landing'
+      if (path === 'saas-landing' || path === 'saas landing') return 'saas-landing';
+      return path;
+    }
 
     // 2. Restore session on page refresh
     const session = localStorage.getItem('tt_session');
@@ -77,24 +83,36 @@ export default function App() {
 
   // Sync URL -> currentView
   useEffect(() => {
-    const path = location.pathname.replace('/', '');
+    const path = decodeURIComponent(location.pathname.replace('/', '')).replace(' ', '-');
     if (path && path !== currentView) {
-      setCurrentView(path);
+      if (path === 'saas-landing' || path === 'saas landing') {
+        setCurrentView('saas-landing');
+      } else {
+        setCurrentView(path);
+      }
     } else if (location.pathname === '/' && currentView === 'login') {
       // Default to login if root and login
     }
   }, [location.pathname]);
 
-  // Sync currentView -> URL
+  // Sync currentView -> URL + Role Protection
   useEffect(() => {
     const currentPath = location.pathname.replace('/', '');
+    
+    // Role-based view protection
+    const isAdminView = ['admin-dashboard', 'employees', 'teams', 'clients', 'roles-permissions', 'settings'].includes(currentView);
+    const isEmployee = currentUser?.role === 'Employee';
+
+    if (isEmployee && isAdminView) {
+      console.warn('Unauthorized access attempt to admin view:', currentView);
+      setCurrentView('user-dashboard');
+      return;
+    }
+
     if (currentView !== currentPath) {
       navigate(`/${currentView}`, { replace: true });
     }
-  }, [currentView, navigate]);
-
-  const { darkMode, setDarkMode } = useAppContext();
-  const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading, updatePresence } = useAuth();
+  }, [currentView, navigate, currentUser?.role]);
 
   // Presence Update Loop
   useEffect(() => {
@@ -385,10 +403,15 @@ export default function App() {
                           <User size={16} /> My Profile
                         </button>
                         <button 
-                          onClick={() => { setCurrentView('settings'); setIsProfileOpen(false); }}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-900'}`}
+                          disabled
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500 bg-gray-900/50' : 'text-gray-400 bg-gray-50'}`}
                         >
-                          <SettingsIcon size={16} /> Account Settings
+                          <div className="flex items-center gap-3">
+                            <SettingsIcon size={16} /> Account Settings
+                          </div>
+                          <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                            Locked
+                          </div>
                         </button>
                       </div>
                       <div className={`p-2 border-t ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
@@ -424,7 +447,7 @@ export default function App() {
           ) : currentView === 'admin-dashboard' ? (
             <AdminDashboardView />
           ) : currentView === 'user-dashboard' ? (
-            <UserDashboardView />
+            <UserDashboardView onViewChange={setCurrentView} />
           ) : currentView === 'profile' ? (
             <ProfileView />
           ) : currentView === 'projects' ? (
