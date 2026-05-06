@@ -6,7 +6,7 @@ import {
   UserX, MoreVertical, Plus, Check, X, 
   ExternalLink, Clock, Globe, Monitor, Smartphone,
   LayoutDashboard, Users, UserPlus, Box, List, Grid, Menu, Bell, Moon,
-  Loader2
+  Loader2, Edit2
 } from 'lucide-react';
 import AddEmployeeModal from './AddEmployeeModal';
 import { 
@@ -32,6 +32,8 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
   const [selectedProject, setSelectedProject] = useState<any | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<any | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [newDesignation, setNewDesignation] = useState('');
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -149,6 +151,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
 
       // 6. Users Table & Top Members
       const { data: usersData } = await supabase.from('users').select('*');
+      console.log('Fetched Users Data from DB:', usersData);
       const allUsers = usersData || [];
       const now = new Date();
 
@@ -174,10 +177,12 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         const isTracking = activeUserIds.has(u.id);
         const status = isTracking ? 'Tracking Now' : (diffMinutes < 15 ? 'Active' : 'Offline');
         
+        console.log(`Mapping User: ${u.full_name}, DB Role: ${u.role}, Mapped Role: ${u.role || 'Employee'}`);
         return {
           id: u.id,
           name: u.full_name,
-          role: u.job_title || 'N/A',
+          designation: u.job_title || 'N/A',
+          actualRole: u.role || 'Employee',
           email: u.email,
           phone: u.phone || 'N/A',
           status: status,
@@ -239,6 +244,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
       .on('postgres_changes', { event: '*', schema: 'public', table: 'time_entries' }, fetchDashboardData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, fetchDashboardData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, fetchDashboardData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, fetchDashboardData)
       .subscribe();
 
     return () => {
@@ -300,6 +306,55 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
   const handleSaveEmployee = async (employeeData: any) => {
     // Refresh data after saving
     await fetchDashboardData();
+  };
+
+  const handleUpdateDesignation = async (userId: string) => {
+    if (!newDesignation.trim()) {
+      setEditingId(null);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ job_title: newDesignation.trim() })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      setEditingId(null);
+      await fetchDashboardData();
+    } catch (error: any) {
+      alert(`Failed to update designation: ${error.message}`);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, role: string) => {
+    console.log('--- ROLE UPDATE START ---');
+    console.log('User ID:', userId);
+    console.log('Target Role:', role);
+    
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .update({ role: role })
+        .eq('id', userId)
+        .select();
+      
+      if (error) {
+        console.error('Supabase Update Error:', error);
+        alert(`Database Error: ${error.message}`);
+        return;
+      }
+      
+      console.log('Supabase Update Response:', data);
+      console.log('--- ROLE UPDATE SUCCESS ---');
+      
+      await fetchDashboardData();
+    } catch (error: any) {
+      console.error('Unexpected Role Update Exception:', error);
+      alert(`Unexpected Error: ${error.message}`);
+    }
   };
 
   return (
@@ -599,6 +654,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
                 <tr className={isDarkMode ? 'bg-[#0a0a1a]/50' : 'bg-gray-50/50'}>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Name</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Designation</th>
+                  <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Role</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Email Address</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Phone Number</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Status</th>
@@ -616,7 +672,57 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
                       <span className={`text-xs font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{member.name}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.role}</td>
+                  <td className="px-6 py-4">
+                      {editingId === member.id ? (
+                        <div className="flex items-center gap-2">
+                          <input 
+                            type="text"
+                            value={newDesignation}
+                            onChange={(e) => setNewDesignation(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleUpdateDesignation(member.id);
+                              if (e.key === 'Escape') setEditingId(null);
+                            }}
+                            className={`text-xs p-1 rounded border outline-none focus:ring-1 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-800'}`}
+                            autoFocus
+                          />
+                          <button onClick={() => handleUpdateDesignation(member.id)} className="text-emerald-500 hover:text-emerald-600">
+                            <Check size={14} />
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="text-red-500 hover:text-red-600">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => {
+                            setEditingId(member.id);
+                            setNewDesignation(member.designation === 'N/A' ? '' : member.designation);
+                          }}
+                          className={`text-xs font-medium cursor-pointer hover:text-blue-500 transition-colors flex items-center gap-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                          title="Click to edit designation"
+                        >
+                          {member.designation}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                             <Edit2 size={12} className="text-gray-400" />
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">
+                      <select 
+                        value={member.actualRole}
+                        onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded border outline-none cursor-pointer transition-all ${
+                          member.actualRole === 'Administrator' 
+                            ? (isDarkMode ? 'bg-purple-600/20 text-purple-400 border-purple-500/30' : 'bg-purple-50 text-purple-700 border-purple-200')
+                            : (isDarkMode ? 'bg-blue-600/20 text-blue-400 border-blue-500/30' : 'bg-blue-50 text-blue-700 border-blue-200')
+                        }`}
+                      >
+                        <option value="Employee" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}>Employee</option>
+                        <option value="Administrator" className={isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-800'}>Administrator</option>
+                      </select>
+                    </td>
                   <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.email}</td>
                   <td className="px-6 py-4 text-xs text-gray-500 font-medium">{member.phone}</td>
                   <td className="px-6 py-4">

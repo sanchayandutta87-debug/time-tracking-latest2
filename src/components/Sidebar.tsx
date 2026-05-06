@@ -13,11 +13,11 @@ import { useAuth } from '../context/AuthContext';
 
 export default function Sidebar({ currentView, onViewChange }: { currentView: string, onViewChange: (view: string) => void }) {
   const { darkMode } = useAppContext();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, currentUser } = useAuth();
   
   // Role Detection
-  const isAdmin = user?.role === 'Administrator';
-  const isEmployee = user?.role === 'Employee';
+  const isAdmin = currentUser?.role?.trim().toLowerCase() === 'administrator';
+  const isEmployee = currentUser?.role?.trim().toLowerCase() === 'employee';
   const [isReportsOpen, setIsReportsOpen] = useState(false);
   const [isBaseUIOpen, setIsBaseUIOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
@@ -120,7 +120,7 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
               <SidebarItem icon={<Activity size={18} />} label="Live Tracking" active={currentView === 'live-tracking'} onClick={() => onViewChange('live-tracking')} darkMode={darkMode} />
               <SidebarItem icon={<Folder size={18} />} label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} darkMode={darkMode} />
               
-              {/* Reports with sub-items - LOCKED */}
+              {/* Reports with sub-items - LOCKED for everyone */}
               <div className="mt-1">
                 <div 
                   className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
@@ -253,25 +253,12 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
           <>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Administrator</p>
             <nav className="space-y-1">
-              <div className="mt-1">
-                <div 
-                  className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ClipboardList size={18} />
-                    <span className="text-sm font-medium">Reports</span>
-                  </div>
-                  <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                    Locked
-                  </div>
-                </div>
-              </div>
               <div 
                 className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
               >
                 <div className="flex items-center gap-3">
-                  <Settings size={18} />
-                  <span className="text-sm font-medium">Settings</span>
+                  <ClipboardList size={18} />
+                  <span className="text-sm font-medium">Reports</span>
                 </div>
                 <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
                   Locked

@@ -123,7 +123,7 @@ export default function App() {
 
       // 3. Role-based view protection: Only 'Administrator' can access admin views
       const isAdminView = ['admin-dashboard', 'employees', 'teams', 'clients', 'roles-permissions', 'settings'].includes(currentView);
-      const isAdmin = currentUser?.role?.toLowerCase() === 'administrator';
+      const isAdmin = currentUser?.role?.trim().toLowerCase() === 'administrator';
       
       if (!isAdmin && isAdminView) {
         setCurrentView('user-dashboard');

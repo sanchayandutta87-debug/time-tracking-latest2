@@ -79,20 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const ensureProfileExists = async (user: any) => {
     console.log('Ensuring profile exists for:', user.id);
     
-    // Create a timeout promise
-    const timeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
-    );
-
     try {
-      const profilePromise = fetchUserProfile(
+      const profile = await fetchUserProfile(
         user.id, 
         user.email!, 
         user.app_metadata.provider as any
       );
-
-      // Race the fetch against a 5-second timeout
-      let profile = await Promise.race([profilePromise, timeout]) as any;
       console.log('Profile fetch result:', profile ? 'Found' : 'Missing');
 
       if (!profile) {
@@ -124,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           id: user.id,
           email: user.email!,
           fullName: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
-          role: 'user',
+          role: 'Employee',
           avatar: user.user_metadata.avatar_url || '',
           provider: user.app_metadata.provider as any
         } as AuthUser;
