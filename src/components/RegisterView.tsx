@@ -54,9 +54,6 @@ const RegisterView = ({ onViewChange }: { onViewChange?: (view: string) => void 
         
         if (result.success) {
             setSuccess('Account created successfully! Redirecting...');
-            setTimeout(() => {
-                if (onViewChange) onViewChange('admin-dashboard');
-            }, 1000);
         } else {
             setError(result.error || 'Registration failed.');
         }
@@ -65,209 +62,191 @@ const RegisterView = ({ onViewChange }: { onViewChange?: (view: string) => void 
     return (
         <AuthLayout 
             title="Sign Up" 
-            subtitle="Please enter your details to Create Account"
+            subtitle="Create your Employee Management account"
         >
-            <div className="relative">
-                <form onSubmit={handleSubmit} className={`space-y-4 transition-all duration-300 ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                    {error && (
-                        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400 animate-shake">
-                            <AlertCircle className="w-4 h-4 shrink-0" />
-                            <span>{error}</span>
-                        </div>
-                    )}
-
-                    {success && (
-                        <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-600 dark:text-green-400">
-                            <CheckCircle2 className="w-4 h-4 shrink-0" />
-                            <span>{success}</span>
-                        </div>
-                    )}
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Full Name</label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                required
-                                placeholder="Enter your full name"
-                                className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
-                                value={formData.fullName}
-                                onChange={(e) => { setFormData({...formData, fullName: e.target.value}); setError(''); }}
-                            />
-                            <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Email Address</label>
-                        <div className="relative">
-                            <input 
-                                type="email" 
-                                required
-                                placeholder="Enter your email"
-                                className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
-                                value={formData.email}
-                                onChange={(e) => { setFormData({...formData, email: e.target.value}); setError(''); }}
-                            />
-                            <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Job Title (Optional)</label>
-                        <div className="relative">
-                            <input 
-                                type="text" 
-                                placeholder="e.g. Software Engineer"
-                                className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
-                                value={formData.jobTitle}
-                                onChange={(e) => setFormData({...formData, jobTitle: e.target.value})}
-                            />
-                            <Briefcase className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Password</label>
-                            <div className="relative">
-                                <input 
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    placeholder="Min 8 characters"
-                                    className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
-                                    value={formData.password}
-                                    onChange={(e) => { setFormData({...formData, password: e.target.value}); setError(''); }}
-                                />
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-                        <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-gray-700 dark:text-slate-300">Confirm</label>
-                            <div className="relative">
-                                <input 
-                                    type={showConfirmPassword ? "text" : "password"}
-                                    required
-                                    placeholder="Repeat password"
-                                    className="w-full pl-4 pr-10 py-2.5 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
-                                    value={formData.confirmPassword}
-                                    onChange={(e) => { setFormData({...formData, confirmPassword: e.target.value}); setError(''); }}
-                                />
-                                <button 
-                                    type="button"
-                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                >
-                                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-2 pt-2">
-                        <input 
-                            type="checkbox" 
-                            id="agreeTerms"
-                            className="mt-1 w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                            checked={formData.agreeTerms}
-                            onChange={(e) => { setFormData({...formData, agreeTerms: e.target.checked}); setError(''); }}
-                        />
-                        <label htmlFor="agreeTerms" className="text-sm text-gray-600 dark:text-slate-400 leading-tight cursor-pointer">
-                            I agree to the <button type="button" onClick={() => setShowPolicy({type: 'terms', open: true})} className="text-blue-600 hover:underline font-medium">Terms of Service</button> and <button type="button" onClick={() => setShowPolicy({type: 'privacy', open: true})} className="text-blue-600 hover:underline font-medium">Privacy Policy</button>
-                        </label>
-                    </div>
-
-                    <button 
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
+            <form onSubmit={handleSubmit} className="auth-stagger space-y-4">
+                {error && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg text-sm text-red-400"
+                        style={{
+                            background: 'rgba(239,68,68,0.08)',
+                            border: '1px solid rgba(239,68,68,0.15)',
+                        }}
                     >
-                        {isLoading ? (
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : 'Sign Up'}
-                    </button>
-
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center">
-                            <div className="w-full border-t border-gray-200 dark:border-slate-700"></div>
-                        </div>
-                        <div className="relative flex justify-center text-sm">
-                            <span className="px-2 bg-white dark:bg-slate-900 text-gray-500 uppercase tracking-widest font-bold">Or Sign Up With</span>
-                        </div>
-                    </div>
-
-                    <button 
-                        type="button" 
-                        onClick={() => googleLogin()}
-                        disabled={isLoading}
-                        className="w-full flex justify-center items-center gap-3 py-3 border border-gray-200 dark:border-slate-700 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-all hover:scale-[1.02] disabled:opacity-50"
-                    >
-                        <Chrome className="w-5 h-5 text-red-500" />
-                        <span className="text-sm font-bold dark:text-white">Sign up with Google</span>
-                    </button>
-
-                    <div className="text-center mt-6">
-                        <p className="text-sm text-gray-500 dark:text-slate-400">
-                            Already have an account?{' '}
-                            <button 
-                                type="button"
-                                onClick={() => onViewChange && onViewChange('login')}
-                                className="text-blue-600 font-bold hover:underline"
-                            >
-                                Sign In
-                            </button>
-                        </p>
-                    </div>
-                </form>
-
-                {/* Loading Overlay */}
-                {isLoading && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center">
-                        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-8 rounded-3xl shadow-2xl flex flex-col items-center gap-4 border border-white/20 dark:border-slate-800">
-                            <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
-                            <p className="text-sm font-bold dark:text-white">Processing...</p>
-                        </div>
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                        <span>{error}</span>
                     </div>
                 )}
-            </div>
 
-            {/* Policy Modal */}
-            {showPolicy.open && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center">
-                            <h3 className="text-xl font-bold dark:text-white">{showPolicy.type === 'terms' ? 'Terms of Service' : 'Privacy Policy'}</h3>
-                            <button onClick={() => setShowPolicy({...showPolicy, open: false})} className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                                <X className="w-5 h-5 dark:text-white" />
+                {success && (
+                    <div className="flex items-center gap-2 p-3 rounded-lg text-sm text-green-400"
+                        style={{
+                            background: 'rgba(16,185,129,0.08)',
+                            border: '1px solid rgba(16,185,129,0.15)',
+                        }}
+                    >
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        <span>{success}</span>
+                    </div>
+                )}
+
+                <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-400">Full Name</label>
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            required
+                            placeholder="Enter your full name"
+                            className="auth-input w-full pl-4 pr-10 py-2.5 rounded-lg text-white outline-none placeholder:text-gray-600"
+                            style={{
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                            value={formData.fullName}
+                            onChange={(e) => { setFormData({...formData, fullName: e.target.value}); setError(''); }}
+                        />
+                        <User className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-gray-400">Email Address</label>
+                    <div className="relative">
+                        <input 
+                            type="email" 
+                            required
+                            placeholder="Enter your email"
+                            className="auth-input w-full pl-4 pr-10 py-2.5 rounded-lg text-white outline-none placeholder:text-gray-600"
+                            style={{
+                                background: 'rgba(255,255,255,0.04)',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                            }}
+                            value={formData.email}
+                            onChange={(e) => { setFormData({...formData, email: e.target.value}); setError(''); }}
+                        />
+                        <Mail className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-gray-400">Password</label>
+                        <div className="relative">
+                            <input 
+                                type={showPassword ? "text" : "password"}
+                                required
+                                placeholder="Min 8 chars"
+                                className="auth-input w-full pl-4 pr-10 py-2.5 rounded-lg text-white outline-none placeholder:text-gray-600"
+                                style={{
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                }}
+                                value={formData.password}
+                                onChange={(e) => { setFormData({...formData, password: e.target.value}); setError(''); }}
+                            />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
+                                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                             </button>
                         </div>
-                        <div className="p-6 max-h-[60vh] overflow-y-auto text-sm text-gray-600 dark:text-slate-400 leading-relaxed">
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-gray-400">Confirm</label>
+                        <div className="relative">
+                            <input 
+                                type={showConfirmPassword ? "text" : "password"}
+                                required
+                                placeholder="Repeat it"
+                                className="auth-input w-full pl-4 pr-10 py-2.5 rounded-lg text-white outline-none placeholder:text-gray-600"
+                                style={{
+                                    background: 'rgba(255,255,255,0.04)',
+                                    border: '1px solid rgba(255,255,255,0.08)',
+                                }}
+                                value={formData.confirmPassword}
+                                onChange={(e) => { setFormData({...formData, confirmPassword: e.target.value}); setError(''); }}
+                            />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600">
+                                {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex items-start gap-2 pt-2">
+                    <input 
+                        type="checkbox" 
+                        id="agreeTerms"
+                        className="mt-1 w-4 h-4 rounded bg-transparent accent-purple-500"
+                        style={{ border: '1px solid rgba(255,255,255,0.12)' }}
+                        checked={formData.agreeTerms}
+                        onChange={(e) => { setFormData({...formData, agreeTerms: e.target.checked}); setError(''); }}
+                    />
+                    <label htmlFor="agreeTerms" className="text-xs text-gray-500 leading-tight">
+                        I agree to the <button type="button" onClick={() => setShowPolicy({type: 'terms', open: true})} className="text-purple-400 hover:underline">Terms</button> and <button type="button" onClick={() => setShowPolicy({type: 'privacy', open: true})} className="text-purple-400 hover:underline">Privacy Policy</button>
+                    </label>
+                </div>
+
+                <button 
+                    type="submit"
+                    disabled={isLoading}
+                    className="auth-btn-primary w-full py-3 text-white font-semibold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{
+                        background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #6d28d9 100%)',
+                        boxShadow: '0 4px 20px rgba(168,85,247,0.25)',
+                    }}
+                >
+                    {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Create Account'}
+                </button>
+
+                <div className="relative my-4">
+                    <div className="absolute inset-0 flex items-center"><div className="w-full" style={{ height: 1, background: 'rgba(255,255,255,0.06)' }}></div></div>
+                    <div className="relative flex justify-center"><span className="px-3 text-[10px] text-gray-600" style={{ background: 'rgba(12,12,18,0.75)' }}>OR</span></div>
+                </div>
+
+                <button 
+                    type="button"
+                    onClick={() => googleLogin()}
+                    className="auth-btn-google w-full flex justify-center items-center gap-3 py-3 rounded-xl"
+                    style={{
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: 'rgba(255,255,255,0.03)',
+                    }}
+                >
+                    <Chrome className="w-5 h-5 text-red-400" />
+                    <span className="text-sm font-semibold text-gray-300">Sign up with Google</span>
+                </button>
+
+                <div className="text-center mt-4">
+                    <p className="text-sm text-gray-500">
+                        Already have an account?{' '}
+                        <button type="button" onClick={() => onViewChange && onViewChange('login')} className="auth-link text-purple-400 font-semibold">Sign In</button>
+                    </p>
+                </div>
+            </form>
+
+            {/* Policy Modal Overlay */}
+            {showPolicy.open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+                    <div className="glass-card w-full max-w-lg rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+                        <div className="p-6 border-b border-white/5 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-white">{showPolicy.type === 'terms' ? 'Terms of Service' : 'Privacy Policy'}</h3>
+                            <button onClick={() => setShowPolicy({...showPolicy, open: false})} className="p-2 hover:bg-white/5 rounded-full transition-colors"><X size={20} className="text-gray-400" /></button>
+                        </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto text-sm text-gray-400 leading-relaxed">
                             {showPolicy.type === 'terms' ? (
                                 <div className="space-y-4">
-                                    <p className="font-bold text-gray-900 dark:text-white text-base">1. Acceptance of Terms</p>
-                                    <p>By creating an account, you agree to abide by all platform rules and security guidelines. This platform is designed for professional time tracking and workforce management.</p>
-                                    <p className="font-bold text-gray-900 dark:text-white text-base">2. User Responsibilities</p>
-                                    <p>You are responsible for maintaining the confidentiality of your login credentials and for all activities that occur under your account.</p>
+                                    <p className="font-bold text-white">1. Acceptance</p>
+                                    <p>By using Employee Management, you agree to these terms.</p>
+                                    <p className="font-bold text-white">2. Usage</p>
+                                    <p>This platform is for professional workforce tracking only.</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <p className="font-bold text-gray-900 dark:text-white text-base">Data Collection</p>
-                                    <p>We collect minimal data including your name, email, and job title to personalize your dashboard experience.</p>
-                                    <p className="font-bold text-gray-900 dark:text-white text-base">Data Usage</p>
-                                    <p>Your tracking data is encrypted and only accessible by authorized administrators. We never sell your personal information.</p>
+                                    <p className="font-bold text-white">Data Security</p>
+                                    <p>We use industry-standard encryption to protect your data.</p>
                                 </div>
                             )}
                         </div>
-                        <div className="p-6 border-t border-gray-100 dark:border-slate-800 flex justify-end">
-                            <button onClick={() => setShowPolicy({...showPolicy, open: false})} className="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                                I Understand
-                            </button>
+                        <div className="p-6 border-t border-white/5 flex justify-end">
+                            <button onClick={() => setShowPolicy({...showPolicy, open: false})} className="px-6 py-2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition-colors">Close</button>
                         </div>
                     </div>
                 </div>

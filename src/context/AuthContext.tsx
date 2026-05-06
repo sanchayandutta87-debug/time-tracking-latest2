@@ -104,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
             email: user.email,
             avatar_url: user.user_metadata.avatar_url,
-            role: 'Administrator',
+            role: 'Employee',
           });
         
         if (!insertError) {
@@ -225,10 +225,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         const profile = await ensureProfileExists(session.user);
+        
         if (mounted) {
           setCurrentUser(profile);
           if (profile) {
             localStorage.setItem('dashboardMode', profile.role);
+            // Also sync tt_session with latest profile data
+            localStorage.setItem('tt_session', JSON.stringify({
+              id: profile.id,
+              email: profile.email,
+              full_name: profile.fullName,
+              role: profile.role
+            }));
           }
         }
       } else {
@@ -289,10 +297,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Google Login
   const googleLogin = async () => {
+    const origin = window.location.origin;
+    console.log('Initiating Google Login, redirecting to:', origin);
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin
+        redirectTo: origin,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     });
     if (error) console.error('Google login error:', error.message);

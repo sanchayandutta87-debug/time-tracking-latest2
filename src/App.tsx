@@ -11,7 +11,6 @@ import LoginView from './components/LoginView';
 import RegisterView from './components/RegisterView';
 import ProfileView from './components/ProfileView';
 
-import SaasLandingView from './components/SaasLandingView';
 import AdminDashboardView from './components/AdminDashboardView';
 import UserDashboardView from './components/UserDashboardView';
 import LiveTrackingView from './components/LiveTrackingView';
@@ -67,8 +66,6 @@ export default function App() {
     // 1. Check URL first
     const path = decodeURIComponent(window.location.pathname.replace('/', '')).replace(' ', '-');
     if (path && path !== '') {
-      // Normalize 'saas landing' to 'saas-landing'
-      if (path === 'saas-landing' || path === 'saas landing') return 'saas-landing';
       return path;
     }
 
@@ -85,34 +82,58 @@ export default function App() {
   useEffect(() => {
     const path = decodeURIComponent(location.pathname.replace('/', '')).replace(' ', '-');
     if (path && path !== currentView) {
-      if (path === 'saas-landing' || path === 'saas landing') {
-        setCurrentView('saas-landing');
-      } else {
-        setCurrentView(path);
-      }
+      setCurrentView(path);
     } else if (location.pathname === '/' && currentView === 'login') {
       // Default to login if root and login
     }
   }, [location.pathname]);
 
-  // Sync currentView -> URL + Role Protection
+  // Sync currentView -> URL + Role Protection + Auth Guards
   useEffect(() => {
-    const currentPath = location.pathname.replace('/', '');
-    
-    // Role-based view protection
-    const isAdminView = ['admin-dashboard', 'employees', 'teams', 'clients', 'roles-permissions', 'settings'].includes(currentView);
-    const isEmployee = currentUser?.role === 'Employee';
+    if (authLoading) return;
 
-    if (isEmployee && isAdminView) {
-      console.warn('Unauthorized access attempt to admin view:', currentView);
-      setCurrentView('user-dashboard');
-      return;
+    const currentPath = location.pathname.replace('/', '') || 'login';
+    
+    console.log('Auth Guard Check:', { 
+      isAuthenticated, 
+      currentUser: currentUser?.email,
+      role: currentUser?.role,
+      currentView, 
+      currentPath 
+    });
+
+    // 1. If NOT authenticated: Force login if trying to access protected views
+    if (!isAuthenticated) {
+      const protectedViews = ['admin-dashboard', 'user-dashboard', 'profile', 'employees', 'teams', 'projects', 'file-manager', 'reports'];
+      if (protectedViews.includes(currentView) || (currentPath !== 'login' && currentPath !== 'register' && currentPath !== '')) {
+        console.log('Not authenticated, redirecting to login');
+        setCurrentView('login');
+      }
+    } 
+    // 2. If authenticated: Redirect away from login/register
+    else {
+      if (currentView === 'login' || currentView === 'register' || currentPath === 'login' || currentPath === 'register') {
+        const role = currentUser?.role;
+        
+        // Safety-first: default to user-dashboard unless explicitly Administrator
+        const targetView = role?.toLowerCase() === 'administrator' ? 'admin-dashboard' : 'user-dashboard';
+        
+        setCurrentView(targetView);
+      }
+
+      // 3. Role-based view protection: Only 'Administrator' can access admin views
+      const isAdminView = ['admin-dashboard', 'employees', 'teams', 'clients', 'roles-permissions', 'settings'].includes(currentView);
+      const isAdmin = currentUser?.role?.toLowerCase() === 'administrator';
+      
+      if (!isAdmin && isAdminView) {
+        setCurrentView('user-dashboard');
+      }
     }
 
-    if (currentView !== currentPath) {
+    if (currentView !== currentPath && currentView !== '') {
       navigate(`/${currentView}`, { replace: true });
     }
-  }, [currentView, navigate, currentUser?.role]);
+  }, [currentView, navigate, currentUser?.role, isAuthenticated, authLoading, location.pathname]);
 
   // Presence Update Loop
   useEffect(() => {
@@ -166,7 +187,7 @@ export default function App() {
 
   // Timer & Inactivity Logic
   useEffect(() => {
-    if (currentView === 'saas-landing') {
+    if (currentView === 'login' || currentView === 'register') {
       setActiveSeconds(0);
       return;
     }
@@ -176,7 +197,7 @@ export default function App() {
     const interval = setInterval(() => {
       const now = Date.now();
       if (now - lastActivityTimeRef.current > 10 * 60 * 1000) { // 10 minutes
-        setCurrentView('saas-landing');
+        setCurrentView('login');
         alert('You have been automatically logged out due to 10 minutes of inactivity.');
       } else {
         setActiveSeconds(prev => prev + 1);
@@ -222,13 +243,13 @@ export default function App() {
 
   return (
     <div className={`flex min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-white dark:bg-black text-gray-900 dark:text-white'}`} dir={currentView === 'rtl-support' ? 'rtl' : 'ltr'}>
-      {currentView !== 'hidden-menu' && currentView !== 'full-width' && currentView !== 'rtl-support' && currentView !== 'saas-landing' && currentView !== 'login' && currentView !== 'register' && (
+      {currentView !== 'hidden-menu' && currentView !== 'full-width' && currentView !== 'rtl-support' && currentView !== 'login' && currentView !== 'register' && (
         <Sidebar currentView={currentView} onViewChange={setCurrentView} />
       )}
       
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Navigation Bar */}
-        {currentView !== 'saas-landing' && currentView !== 'login' && currentView !== 'register' && (
+        {currentView !== 'login' && currentView !== 'register' && (
           <header className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800'} border-b h-16 flex items-center justify-between px-6 shrink-0 transition-colors duration-500 relative z-30`}>
             <div className="flex items-center gap-4 flex-1">
               {(currentView === 'hidden-menu' || currentView === 'full-width' || currentView === 'rtl-support' || currentView === 'dark-mode') && (
@@ -438,7 +459,7 @@ export default function App() {
 
         {/* Main Content Area */}
         {/* Main Content Area */}
-        <main className={`flex-1 overflow-y-auto transition-colors duration-500 ${currentView === 'saas-landing' ? 'p-0' : 'p-8'}`}>
+        <main className={`flex-1 overflow-y-auto transition-colors duration-500 ${['login', 'register'].includes(currentView) ? 'p-0' : 'p-8'}`}>
 
           {currentView === 'login' ? (
             <LoginView onViewChange={setCurrentView} />
@@ -462,8 +483,6 @@ export default function App() {
             <NotesView />
 
 
-          ) : currentView === 'saas-landing' ? (
-            <SaasLandingView onViewChange={setCurrentView} />
           ) : currentView === 'live-tracking' ? (
             <LiveTrackingView />
           ) : currentView === 'timesheet' ? (
