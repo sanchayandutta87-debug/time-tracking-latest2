@@ -9,7 +9,7 @@ import {
 import { supabase } from '../utils/supabase';
 import { useAppContext } from '../context/AppContext';
 
-type SettingsTab = 'company' | 'work' | 'system';
+type SettingsTab = 'account' | 'company' | 'work' | 'system';
 type AccountSubTab = 'profile' | 'security';
 
 const COUNTRIES = [
@@ -23,8 +23,8 @@ const COUNTRIES = [
 ];
 
 export default function SettingsView() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('company');
-  const [activeSubTab, setActiveSubTab] = useState<string>('organization');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+  const [activeSubTab, setActiveSubTab] = useState<string>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const { showToast, askConfirm } = useAppContext();
 
@@ -128,7 +128,8 @@ export default function SettingsView() {
     blurScreenshots: true,
     employeeEdit: true,
     workSchedule: true,
-    websiteApplication: true
+    websiteApplication: true,
+    isLocked: false
   });
 
   // System Settings State
@@ -196,7 +197,6 @@ export default function SettingsView() {
       if (!desigError) setDesignations(desigData || []);
     } catch (error: any) {
       console.error('Error fetching departments:', error);
-      showToast(error.message || 'Failed to fetch departments', 'error');
     } finally {
       setIsLoadingDepartments(false);
       isFetchingRef.current['departments'] = false;
@@ -213,7 +213,6 @@ export default function SettingsView() {
       setEmployeeTypes(data || []);
     } catch (error: any) {
       console.error('Error fetching employee types:', error);
-      showToast(error.message || 'Failed to fetch employee types', 'error');
     } finally {
       setIsLoadingEmployeeTypes(false);
       isFetchingRef.current['employeeTypes'] = false;
@@ -230,7 +229,6 @@ export default function SettingsView() {
       setLeaveTypes(data || []);
     } catch (error: any) {
       console.error('Error fetching leave types:', error);
-      showToast(error.message || 'Failed to fetch leave types', 'error');
     } finally {
       setIsLoadingLeaves(false);
       isFetchingRef.current['leaveTypes'] = false;
@@ -248,6 +246,11 @@ export default function SettingsView() {
         setWorkingHours(settings.working_hours || workingHours);
         setTrackerSettings(settings.tracker_settings || trackerSettings);
       }
+
+      // Fetch shifts
+      const { data: shiftsData, error: shiftsError } = await fetchWithTimeout(supabase.from('shifts').select('*').order('name')) as any;
+      if (!shiftsError) setShifts(shiftsData || []);
+      
     } catch (error) {
       console.error('Error fetching work settings:', error);
     } finally {
@@ -264,7 +267,7 @@ export default function SettingsView() {
         tracker_settings: trackerSettings
       });
       if (error) throw error;
-      showToast('Work settings saved successfully');
+      showToast(trackerSettings.isLocked ? 'System Locked successfully' : 'Work settings saved successfully');
     } catch (error: any) {
       console.error('Error saving work settings:', error);
       showToast(error.message || 'Failed to save settings', 'error');
@@ -427,8 +430,7 @@ export default function SettingsView() {
     setIsSaving(true);
     setTimeout(() => {
       setIsSaving(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
+      showToast('Changes saved successfully', 'success');
     }, 1000);
   };
 
@@ -452,6 +454,7 @@ export default function SettingsView() {
 
 
   const sidebarItems = [
+    { id: 'account', label: 'Account Settings', icon: <User size={18} /> },
     { id: 'company', label: 'Company Settings', icon: <Building2 size={18} /> },
     { id: 'work', label: 'Work Settings', icon: <Briefcase size={18} /> },
     { id: 'system', label: 'System Settings', icon: <SettingsIcon size={18} /> },
@@ -630,6 +633,190 @@ export default function SettingsView() {
         {/* Main Content */}
         <div className="flex-1">
           <div className="bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
+
+            {activeTab === 'account' && (
+              <>
+                {/* Account Sub Tabs */}
+                <div className="flex items-center gap-8 px-8 border-b border-gray-100 dark:border-gray-800">
+                  {['Profile', 'Security'].map((tab) => {
+                    const id = tab.toLowerCase();
+                    return (
+                      <button 
+                        key={id}
+                        onClick={() => setActiveSubTab(id)}
+                        className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === id ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+                      >
+                        {tab}
+                        {activeSubTab === id && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="p-8">
+                  {activeSubTab === 'profile' ? (
+                    <div className="space-y-8">
+                      {/* Avatar Section */}
+                      <section>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-6">Profile Picture</h3>
+                        <div className="flex items-center gap-6">
+                          <div className="relative group">
+                            <div className="w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 shadow-xl overflow-hidden bg-gray-50">
+                              <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
+                            </div>
+                            <button 
+                              onClick={() => fileInputRef.current?.click()}
+                              className="absolute bottom-0 right-0 p-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all active:scale-90"
+                            >
+                              <Camera size={14} />
+                            </button>
+                            <input 
+                              type="file" 
+                              ref={fileInputRef}
+                              onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                  setProfileImage(URL.createObjectURL(e.target.files[0]));
+                                }
+                              }}
+                              className="hidden" 
+                              accept="image/*"
+                            />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Upload New Avatar</h4>
+                            <p className="text-xs text-gray-400 max-w-[240px]">JPG, GIF or PNG. Max size of 800K</p>
+                          </div>
+                        </div>
+                      </section>
+
+                      <hr className="border-gray-50 dark:border-gray-800" />
+
+                      {/* Personal Info */}
+                      <section>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-6">Personal Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">First Name</label>
+                            <input 
+                              type="text" 
+                              value={profileData.firstName}
+                              onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Last Name</label>
+                            <input 
+                              type="text" 
+                              value={profileData.lastName}
+                              onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Email Address</label>
+                            <input 
+                              type="email" 
+                              value={profileData.email}
+                              onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Phone Number</label>
+                            <input 
+                              type="text" 
+                              value={profileData.phone}
+                              onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            />
+                          </div>
+                        </div>
+                      </section>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-50 dark:border-gray-800">
+                        <button className="px-6 py-2.5 text-gray-500 dark:text-gray-400 text-sm font-bold hover:bg-gray-50 dark:hover:bg-gray-900 rounded-lg transition-colors">Discard</button>
+                        <button 
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-70"
+                        >
+                          {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-8">
+                      {/* Password Change */}
+                      <section>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-6">Change Password</h3>
+                        <div className="max-w-xl space-y-6">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Current Password</label>
+                            <div className="relative">
+                              <input 
+                                type={showCurrentPassword ? 'text' : 'password'}
+                                value={passwords.current}
+                                onChange={(e) => setPasswords({...passwords, current: e.target.value})}
+                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                              />
+                              <button 
+                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                              >
+                                {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">New Password</label>
+                              <div className="relative">
+                                <input 
+                                  type={showNewPassword ? 'text' : 'password'}
+                                  value={passwords.new}
+                                  onChange={(e) => setPasswords({...passwords, new: e.target.value})}
+                                  className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                />
+                                <button 
+                                  onClick={() => setShowNewPassword(!showNewPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Confirm Password</label>
+                              <div className="relative">
+                                <input 
+                                  type={showConfirmPassword ? 'text' : 'password'}
+                                  value={passwords.confirm}
+                                  onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
+                                  className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                />
+                                <button 
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-50 dark:border-gray-800">
+                        <button className="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">Update Password</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {activeTab === 'company' && (
               <>
@@ -1421,8 +1608,44 @@ export default function SettingsView() {
                     <div className="space-y-6">
                       <div className="bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden">
                         <div className="p-6 space-y-6">
+                          {/* Lock System Toggle */}
+                          <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/30 mb-6">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                                <Zap size={20} />
+                              </div>
+                              <div>
+                                <h4 className="text-sm font-bold text-blue-900 dark:text-blue-100">System Lock Enforcement</h4>
+                                <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-medium">When enabled, all tracking settings are strictly enforced and cannot be modified.</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => {
+                                if (trackerSettings.isLocked) {
+                                  askConfirm('Unlock System', 'Are you sure you want to unlock the tracking system? This will allow changes to monitoring policies.', () => {
+                                    setTrackerSettings({...trackerSettings, isLocked: false});
+                                  });
+                                } else {
+                                  askConfirm('Lock System', 'This will lock all tracking settings for both admins and users. Are you sure?', () => {
+                                    setTrackerSettings({
+                                      ...trackerSettings, 
+                                      isLocked: true,
+                                      screenshots: true,
+                                      screenshotDelete: false,
+                                      websiteApplication: true,
+                                      employeeEdit: false
+                                    });
+                                  });
+                                }
+                              }}
+                              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${trackerSettings.isLocked ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                            >
+                              {trackerSettings.isLocked ? 'Unlock System' : 'Lock System Now'}
+                            </button>
+                          </div>
+
                           {/* Late Coming Time */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Late Coming Time</label>
                             <div className="flex items-center gap-3 w-72">
                               <input 
@@ -1436,7 +1659,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Daily Overtime Limit */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Daily Overtime Limit</label>
                             <div className="flex items-center gap-3 w-72">
                               <input 
@@ -1450,7 +1673,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Screenshots */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Screenshots</label>
                             <div className="w-72">
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -1466,7 +1689,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Screenshot Interval */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Screenshot Interval</label>
                             <div className="flex items-center gap-3 w-72">
                               <input 
@@ -1480,7 +1703,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Screenshot Delete Option */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Screenshot Delete Option</label>
                             <div className="w-72">
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -1496,7 +1719,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Blur Screenshots */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Blur Screenshots</label>
                             <div className="w-72">
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -1512,7 +1735,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Employee Edit Option */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Employee Edit Option</label>
                             <div className="w-72">
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -1528,7 +1751,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Work Schedule */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Work Schedule</label>
                             <div className="w-72">
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -1544,7 +1767,7 @@ export default function SettingsView() {
                           </div>
 
                           {/* Website & Application */}
-                          <div className="flex items-center justify-between group">
+                          <div className={`flex items-center justify-between group ${trackerSettings.isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
                             <label className="text-sm font-bold text-gray-700 dark:text-gray-300">Website & Application</label>
                             <div className="w-72">
                               <label className="relative inline-flex items-center cursor-pointer">
@@ -1731,17 +1954,6 @@ export default function SettingsView() {
           </div>
         </div>
       </div>
-
-      {/* Notifications */}
-      {showSuccess && (
-        <div className="fixed bottom-8 right-8 bg-emerald-600 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300 z-50">
-          <CheckCircle2 size={20} />
-          <div>
-            <p className="text-sm font-bold">Changes Saved Successfully</p>
-            <p className="text-xs opacity-90">Your profile has been updated.</p>
-          </div>
-        </div>
-      )}
 
       {/* Modals */}
 

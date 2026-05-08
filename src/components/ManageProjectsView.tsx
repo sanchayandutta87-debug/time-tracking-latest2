@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, ChevronRight, MoreVertical, LayoutGrid, Archive, CheckSquare, Clock, Flag, UserCheck, AlertCircle, Trash2, Edit2, X, ChevronDown, User, File, UploadCloud, Download } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { useAuth } from '../context/AuthContext';
 
 function ActivityIcon({ size }: { size: number }) {
   return (
@@ -88,6 +89,7 @@ import { useAppContext } from '../context/AppContext';
 
 export default function ManageProjectsView() {
   const { darkMode, showToast, askConfirm } = useAppContext();
+  const { currentUser } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -151,7 +153,20 @@ export default function ManageProjectsView() {
         };
       });
 
-      setProjects(formatted);
+      // Filter for non-admins: Only show projects where user is assigned to at least one task
+      const finalProjects = currentUser?.role?.toLowerCase() === 'administrator' 
+        ? formatted 
+        : formatted.filter(p => {
+            // Check if user is in the team (derived from tasks)
+            return (p.team || []).some((m: any) => {
+              // We need to ensure we have the user ID for comparison
+              // Let's check if any task assignee matches currentUser.id
+              const projectFromDb = data?.find(dbP => dbP.id === p.id);
+              return projectFromDb?.tasks?.some((t: any) => t.assignee_id === currentUser?.id);
+            });
+          });
+
+      setProjects(finalProjects);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {

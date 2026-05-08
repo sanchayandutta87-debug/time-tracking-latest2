@@ -36,7 +36,7 @@ export default function LeaveView() {
         .select('*, users(full_name, job_title, avatar_url)')
         .order('created_at', { ascending: false });
       
-      if (currentUser?.role === 'employee') {
+      if (currentUser?.role?.toLowerCase() !== 'administrator') {
         query = query.eq('user_id', currentUser.id);
       }
 
@@ -81,7 +81,19 @@ export default function LeaveView() {
 
   useEffect(() => {
     fetchLeaves();
-  }, []);
+
+    // Subscribe to real-time updates
+    const subscription = supabase
+      .channel('leave-requests-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leave_requests' }, () => {
+        fetchLeaves();
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [currentUser?.id, currentUser?.role]);
 
   const handleUpdateStatus = async (id: string, status: string) => {
     try {

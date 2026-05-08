@@ -252,23 +252,6 @@ export default function FileManagerView() {
 
   return (
     <div className="relative min-h-screen">
-      {/* Toast Notification */}
-      {notification && (
-        <div className="fixed top-6 right-6 z-[100] animate-in fade-in slide-in-from-right-4 duration-300">
-          <div className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border ${
-            notification.type === 'success' 
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-400' 
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
-          }`}>
-            {notification.type === 'success' ? (
-              <CheckCircle2 size={20} />
-            ) : (
-              <AlertCircle size={20} />
-            )}
-            <span className="text-sm font-bold">{notification.text}</span>
-          </div>
-        </div>
-      )}
 
       <div className="flex flex-col h-full bg-gray-50/30 dark:bg-transparent">
       <input 
@@ -283,11 +266,6 @@ export default function FileManagerView() {
         <div>
           <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white mb-2">File Manager</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Manage and organize your digital workspace</p>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-gray-400 bg-gray-100/50 dark:bg-white/5 px-4 py-2 rounded-full backdrop-blur-md">
-          <span className="hover:text-blue-600 cursor-pointer transition-colors">Home</span>
-          <ChevronRight size={12} className="text-gray-300" />
-          <span className="text-gray-600 dark:text-gray-300">File Manager</span>
         </div>
       </div>
 

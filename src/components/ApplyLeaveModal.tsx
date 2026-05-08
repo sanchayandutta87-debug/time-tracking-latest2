@@ -29,7 +29,7 @@ export default function ApplyLeaveModal({ isOpen, onClose, onSuccess }: ApplyLea
       const { data } = await supabase
         .from('leave_types')
         .select('*')
-        .eq('status', 'Active');
+        .eq('status', 'active');
       
       if (data && data.length > 0) {
         setLeaveTypes(data);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import StatCard from './components/StatCard';
+import { supabase } from './utils/supabase';
 import ProjectTable from './components/ProjectTable';
 import ChatView from './components/ChatView';
 import InvoicesView from './components/InvoicesView';
@@ -90,21 +91,18 @@ export default function App() {
 
     // 1. If NOT authenticated: Force login if trying to access protected views
     if (!isAuthenticated) {
-      const protectedViews = ['admin-dashboard', 'user-dashboard', 'profile', 'employees', 'teams', 'projects', 'file-manager', 'reports'];
-      if (protectedViews.includes(currentView) || (currentPath !== 'login' && currentPath !== 'register' && currentPath !== '')) {
-        console.log('Not authenticated, redirecting to login');
+      if (currentView !== 'login' && currentView !== 'register') {
         setCurrentView('login');
+        window.history.replaceState({}, '', '/login');
       }
     } 
     // 2. If authenticated: Redirect away from login/register
     else {
       if (currentView === 'login' || currentView === 'register' || currentPath === 'login' || currentPath === 'register') {
         const role = currentUser?.role;
-        
-        // Safety-first: default to user-dashboard unless explicitly Administrator
         const targetView = role?.toLowerCase() === 'administrator' ? 'admin-dashboard' : 'user-dashboard';
-        
         setCurrentView(targetView);
+        window.history.replaceState({}, '', `/${targetView}`);
       }
 
       // 3. Role-based view protection: Only 'Administrator' can access admin views
@@ -143,6 +141,44 @@ export default function App() {
 
   // Notifications State — starts empty, populated by real events
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Subscribe to real-time notifications
+  useEffect(() => {
+    if (!isAuthenticated || !currentUser) return;
+
+    // 1. Initial fetch of notifications
+    const fetchNotifications = async () => {
+      const { data } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (data) setNotifications(data);
+    };
+    fetchNotifications();
+
+    // 2. Real-time subscription
+    const channel = supabase
+      .channel(`user-notifications-${currentUser.id}`)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'notifications',
+        filter: `user_id=eq.${currentUser.id}`
+      }, (payload) => {
+        const newNotif = payload.new;
+        setNotifications(prev => [newNotif, ...prev]);
+        
+        // Show Global Toast for real-time alert
+        showToast(newNotif.title, newNotif.type || 'info');
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated, currentUser?.id, showToast]);
 
   // Global Keyboard Shortcuts & Activity Tracking
   useEffect(() => {
@@ -207,9 +243,14 @@ export default function App() {
     return 'text-red-500';
   };
 
-  if (authLoading && currentView !== 'register') {
-    return <LoginView onViewChange={setCurrentView} />;
-  }
+  // Prevention logic for black screen during transitions
+  if (!isAuthenticated) {
+      if (currentView !== 'login' && currentView !== 'register') {
+        setCurrentView('login');
+        window.history.replaceState({}, '', '/login');
+      }
+      return <LoginView onViewChange={setCurrentView} />;
+    }
 
   return (
     <div className={`flex min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`} dir={currentView === 'rtl-support' ? 'rtl' : 'ltr'}>
@@ -394,14 +435,16 @@ export default function App() {
                         >
                           <User size={16} /> My Profile
                         </button>
-                        <button 
-                          onClick={() => { setCurrentView('settings'); setIsProfileOpen(false); }}
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <SettingsIcon size={16} /> Account Settings
-                          </div>
-                        </button>
+                        {currentUser?.role?.toLowerCase() === 'administrator' && (
+                          <button 
+                            onClick={() => { setCurrentView('settings'); setIsProfileOpen(false); }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <SettingsIcon size={16} /> Account Settings
+                            </div>
+                          </button>
+                        )}
                       </div>
                       <div className={`p-2 border-t ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
                         <button 
