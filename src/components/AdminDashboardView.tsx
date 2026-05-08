@@ -61,9 +61,18 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
 
       const entries = timeEntries || [];
 
-      // 3. Stats Calculation
-      const totalSeconds = entries.reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
-      const manualSeconds = entries.filter(e => e.is_manual).reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
+      // 3. Stats Calculation with Live Time support
+      const nowTime = new Date().getTime();
+      const calculateDuration = (entry: any) => {
+        if (entry.duration_seconds) return entry.duration_seconds;
+        if (entry.start_time && !entry.end_time) {
+          return Math.floor((nowTime - new Date(entry.start_time).getTime()) / 1000);
+        }
+        return 0;
+      };
+
+      const totalSeconds = entries.reduce((acc, curr) => acc + calculateDuration(curr), 0);
+      const manualSeconds = entries.filter(e => e.is_manual).reduce((acc, curr) => acc + calculateDuration(curr), 0);
       
       const formatDuration = (sec: number) => {
         const h = Math.floor(sec / 3600);
@@ -71,11 +80,33 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         return `${h}h ${m}m`;
       };
 
+      // Aggregate data for last 7 days charts
+      const dailyData: { [key: string]: { total: number, manual: number } } = {};
+      for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dailyData[d.toISOString().split('T')[0]] = { total: 0, manual: 0 };
+      }
+
+      entries.forEach(e => {
+        const dateStr = new Date(e.start_time).toISOString().split('T')[0];
+        if (dailyData[dateStr]) {
+          const dur = calculateDuration(e);
+          dailyData[dateStr].total += dur;
+          if (e.is_manual) dailyData[dateStr].manual += dur;
+        }
+      });
+
+      const chartDates = Object.keys(dailyData).sort();
+      const workingHoursSeries = chartDates.map(date => ({ value: Math.round(dailyData[date].total / 3600 * 10) / 10 }));
+      const productionSeries = chartDates.map(date => ({ value: Math.round((dailyData[date].total - dailyData[date].manual) / 3600 * 10) / 10 }));
+      const manualSeries = chartDates.map(date => ({ value: Math.round(dailyData[date].manual / 3600 * 10) / 10 }));
+
       setStats([
-        { title: 'Working Hours', value: formatDuration(totalSeconds), change: 'Live', trend: 'up', color: '#3b82f6', data: [ { value: 10 }, { value: 15 }, { value: 12 }, { value: 20 }, { value: 18 }, { value: 25 }, { value: 22 } ] },
-        { title: 'Production', value: formatDuration(totalSeconds - manualSeconds), change: 'Live', trend: 'up', color: '#f97316', data: [ { value: 25 }, { value: 20 }, { value: 22 }, { value: 15 }, { value: 18 }, { value: 12 }, { value: 15 } ] },
-        { title: 'Unproductive', value: '0h 0m', change: '0%', trend: 'down', color: '#3b82f6', data: [ { value: 10 }, { value: 12 }, { value: 15 }, { value: 18 }, { value: 20 }, { value: 22 }, { value: 25 } ] },
-        { title: 'Manual Added', value: formatDuration(manualSeconds), change: 'Live', trend: 'up', color: '#10b981', data: [ { value: 15 }, { value: 18 }, { value: 12 }, { value: 20 }, { value: 22 }, { value: 25 }, { value: 28 } ] },
+        { title: 'Working Hours', value: formatDuration(totalSeconds), change: 'Live', trend: 'up', color: '#3b82f6', data: workingHoursSeries },
+        { title: 'Production', value: formatDuration(totalSeconds - manualSeconds), change: 'Live', trend: 'up', color: '#f97316', data: productionSeries },
+        { title: 'Unproductive', value: '0h 0m', change: '0%', trend: 'down', color: '#ef4444', data: [ { value: 0 }, { value: 0 }, { value: 0 }, { value: 0 }, { value: 0 }, { value: 0 }, { value: 0 } ] },
+        { title: 'Manual Added', value: formatDuration(manualSeconds), change: 'Live', trend: 'up', color: '#10b981', data: manualSeries },
       ]);
 
       // 4. Project Statistics
@@ -113,7 +144,6 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         const uName = userData?.full_name || 'Unknown';
         const tName = teamData?.name || 'No Team';
         
-        // Ensure the project entry exists (in case project_id is missing from allProjects fetch)
         if (!pWorkforceMap[pId]) {
           pWorkforceMap[pId] = { name: projData?.name || 'Internal', members: {} };
         }
@@ -130,7 +160,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
             pWorkforceMap[pId].members[uName].startDate = e.start_time;
           }
         }
-        pWorkforceMap[pId].members[uName].time += (e.duration_seconds || 0);
+        pWorkforceMap[pId].members[uName].time += calculateDuration(e);
       });
 
       const formattedWorkforce = Object.values(pWorkforceMap)
@@ -168,16 +198,15 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         role: user.job_title || 'Employee',
         salary: `$${Math.floor(Math.random() * 5000) + 3000}`,
         avatar: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=random`,
-        totalTime: entries.filter(e => e.user_id === user.id).reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0)
+        totalTime: entries.filter(e => e.user_id === user.id).reduce((acc, curr) => acc + calculateDuration(curr), 0)
       })).sort((a, b) => b.totalTime - a.totalTime).slice(0, 5));
 
-      setMembersTable(allUsers.slice(0, 10).map(u => {
+      const tableData = allUsers.map(u => {
         const lastSeen = u.last_seen ? new Date(u.last_seen) : null;
         const diffMinutes = lastSeen ? (now.getTime() - lastSeen.getTime()) / (1000 * 60) : 999;
         const isTracking = activeUserIds.has(u.id);
         const status = isTracking ? 'Tracking Now' : (diffMinutes < 15 ? 'Active' : 'Offline');
         
-        console.log(`Mapping User: ${u.full_name}, DB Role: ${u.role}, Mapped Role: ${u.role || 'Employee'}`);
         return {
           id: u.id,
           name: u.full_name,
@@ -189,7 +218,18 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
           isTracking: isTracking,
           avatar: u.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.full_name)}&background=random`
         };
-      }));
+      });
+
+      // Sort: Tracking Now > Active > Offline
+      const statusPriority: any = { 'Tracking Now': 0, 'Active': 1, 'Offline': 2 };
+      tableData.sort((a, b) => {
+        if (a.status !== b.status) {
+          return (statusPriority[a.status] ?? 99) - (statusPriority[b.status] ?? 99);
+        }
+        return a.name.localeCompare(b.name);
+      });
+
+      setMembersTable(tableData);
 
       // 7. Request Approval (Leave Requests + Manual Time)
       const { data: leaveRequests } = await supabase
@@ -254,7 +294,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
 
   if (isLoading) {
     return (
-      <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'bg-[#0a0a1a] text-white' : 'bg-gray-50 text-gray-800'}`}>
+      <div className={`flex flex-col items-center justify-center h-full ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-800'}`}>
         <Loader2 className="w-12 h-12 animate-spin text-blue-600 mb-4" />
         <p className="text-lg font-bold animate-pulse">Synchronizing Dashboard...</p>
       </div>
@@ -358,22 +398,19 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
   };
 
   return (
-    <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-[#0a0a1a]' : 'bg-gray-50'}`}>
+    <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 px-6 pt-4 shrink-0">
-        <h1 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Admin Dashboard</h1>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <span className={`${isDarkMode ? 'text-gray-500' : 'rtl:text-gray-600 ltr:text-gray-400'}`}>Home</span>
-          <ChevronRight size={14} className="rtl:rotate-180" />
-          <span className={`${isDarkMode ? 'text-gray-300' : 'rtl:text-gray-400 ltr:text-gray-600'}`}>Admin Dashboard</span>
-        </div>
+      <div className="flex justify-between items-center mb-10 px-6 pt-4 shrink-0">
+        <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+          Admin Dashboard
+        </h1>
       </div>
 
       <div className="px-6 pb-12 space-y-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (
-            <div key={i} className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
+            <div key={i} className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <p className="text-xs font-medium text-gray-400 mb-1">{stat.title}</p>
@@ -414,7 +451,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         {/* Second Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Top Members */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Top Members</h3>
             <div className="space-y-6">
               {topMembers.map((member, i) => (
@@ -436,7 +473,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
           </div>
 
           {/* Members Overview (Radar Chart) */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Members Overview</h3>
             <div className="flex justify-center gap-4 mb-4">
               <div className="flex items-center gap-2">
@@ -462,7 +499,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
           </div>
 
           {/* Request Approval */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Request Approval</h3>
             <div className="space-y-6">
               {requestApproval.length > 0 ? requestApproval.map((req, i) => (
@@ -506,7 +543,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         {/* Third Row */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Project Statistics (Bar Chart) */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-7 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-7 p-6 rounded-xl border shadow-sm`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Project Statistics</h3>
               <div className="flex gap-4">
@@ -540,7 +577,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
           </div>
 
           {/* Recent Projects */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-5 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-5 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Recent Projects</h3>
             <div className="space-y-6">
               {recentProjects.map((project, i) => (
@@ -585,7 +622,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
         {/* Project Detail Modal */}
         {selectedProject && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200`}>
+            <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} w-full max-w-md rounded-2xl border shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200`}>
               <div className={`p-6 border-b ${isDarkMode ? 'border-gray-800' : 'border-gray-100'} flex justify-between items-center`}>
                 <div>
                   <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>{selectedProject.projectName}</h3>
@@ -635,7 +672,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
 
 
         {/* Members Table */}
-        <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden`}>
+        <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden`}>
           <div className={`p-6 border-b flex justify-between items-center ${isDarkMode ? 'border-gray-800' : 'border-gray-100'}`}>
             <h3 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Members</h3>
             <button 
@@ -648,10 +685,10 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
               <Plus size={18} /> Add New
             </button>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto max-h-[400px] overflow-y-auto custom-scrollbar">
             <table className="w-full text-start border-collapse">
               <thead>
-                <tr className={isDarkMode ? 'bg-[#0a0a1a]/50' : 'bg-gray-50/50'}>
+                <tr className={isDarkMode ? 'bg-black' : 'bg-gray-50/50'}>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Name</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Designation</th>
                   <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-wider text-start">Role</th>
@@ -662,7 +699,7 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
               </thead>
               <tbody className={`divide-y ${isDarkMode ? 'divide-gray-800' : 'divide-gray-50'}`}>
                 {membersTable.map((member, i) => (
-                  <tr key={i} className={`transition-colors ${isDarkMode ? 'hover:bg-[#0a0a1a]/50' : 'hover:bg-gray-50/50'}`}>
+                  <tr key={i} className={`transition-colors ${isDarkMode ? 'hover:bg-gray-900/50' : 'hover:bg-gray-50/50'}`}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative">

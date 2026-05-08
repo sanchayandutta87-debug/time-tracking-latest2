@@ -102,7 +102,7 @@ const reportTypes = [
 ];
 
 export default function ReportsOverviewView({ onViewChange }: { onViewChange?: (view: string) => void }) {
-  const { darkMode } = useAppContext();
+  const { darkMode, showToast } = useAppContext();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
 
@@ -123,7 +123,7 @@ export default function ReportsOverviewView({ onViewChange }: { onViewChange?: (
 
       if (error) {
         console.error('Error fetching data for PDF:', error);
-        alert('Failed to fetch data for PDF.');
+        showToast('Failed to fetch data for PDF.', 'error');
         return;
       }
 
@@ -737,7 +737,7 @@ export default function ReportsOverviewView({ onViewChange }: { onViewChange?: (
       
       doc.save(`Weekend_Work_Report_${new Date().toISOString().split('T')[0]}.pdf`);
     } else {
-      alert(`PDF Generation for ${reportTitle} is not yet implemented.`);
+      showToast(`PDF Generation for ${reportTitle} is not yet implemented.`, 'info');
     }
   };
 

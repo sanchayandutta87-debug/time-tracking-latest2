@@ -16,12 +16,12 @@ export default function StatCard(props: StatCardProps) {
   const isPositive = change.startsWith('+');
 
   return (
-    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col relative overflow-hidden h-40">
+    <div className="bg-white dark:bg-black p-5 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col relative overflow-hidden h-40">
       <div className="flex justify-between items-start mb-2">
         <div>
-          <p className="text-gray-400 text-sm font-medium">{title}</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">{title}</p>
           <div className="flex items-baseline gap-2 mt-1">
-            <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+            <h3 className="text-2xl font-bold text-gray-800 dark:text-white">{value}</h3>
             <span className={`text-xs font-medium flex items-center gap-0.5 ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
               {isPositive ? '↗' : '↘'} {change.replace('+', '').replace('-', '')}
             </span>

@@ -127,7 +127,7 @@ export default function ActivityLogsView() {
       <div className="max-w-6xl">
         {logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${darkMode ? 'bg-white/5 text-gray-600' : 'bg-gray-100 text-gray-400'}`}>
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${darkMode ? 'bg-black text-gray-600 border border-gray-800' : 'bg-gray-100 text-gray-400'}`}>
               <Bell size={40} />
             </div>
             <h3 className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>No activities yet</h3>
@@ -137,12 +137,12 @@ export default function ActivityLogsView() {
           logs.map((group, groupIdx) => (
             <div key={groupIdx} className="mb-10 last:mb-0">
               <div className="mb-6">
-                <span className={`${darkMode ? 'bg-white/5 text-gray-300 border-white/10' : 'bg-gray-200 text-gray-700'} border px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider`}>
+                <span className={`${darkMode ? 'bg-black text-gray-300 border-gray-800' : 'bg-gray-200 text-gray-700'} border px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider`}>
                   {group.date}
                 </span>
               </div>
 
-              <div className={`relative ml-4 pl-8 border-l border-dashed ${darkMode ? 'border-white/10' : 'border-gray-200'} space-y-8`}>
+              <div className={`relative ml-4 pl-8 border-l border-dashed ${darkMode ? 'border-gray-800' : 'border-gray-200'} space-y-8`}>
                 {group.items.map((item, itemIdx) => (
                   <div key={item.id} className="relative group/log">
                     {/* Timeline Dot/Icon */}

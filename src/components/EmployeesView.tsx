@@ -72,7 +72,7 @@ export default function EmployeesView() {
           shift: user.shift || 'Day',
           email: user.email,
           phone: user.phone || 'N/A',
-          status: isTracking ? 'Active' : (user.status || 'Inactive'),
+          status: user.status || 'Active', // Default to Active (employed)
           isOnline: isTracking || isRecentlyActive,
           avatar: user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name)}&background=random`,
           joinDate: user.created_at ? new Date(user.created_at).toISOString().split('T')[0] : '2024-01-01'
@@ -129,27 +129,22 @@ export default function EmployeesView() {
   ];
 
   return (
-    <div className="p-8 bg-gray-50 dark:bg-transparent min-h-full">
+    <div className="p-8 bg-transparent min-h-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Employees</h1>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <span className="hover:text-blue-600 cursor-pointer">Home</span>
-          <ChevronRight size={14} />
-          <span className="text-gray-600 dark:text-gray-300">Employees</span>
-        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-white dark:bg-slate-800 p-6 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm flex items-center justify-between">
+          <div key={i} className="bg-white dark:bg-black p-6 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg ${stat.color}`}>
                 {stat.icon}
               </div>
               <div>
-                <p className="text-xs font-bold text-gray-400 dark:text-slate-500 mb-1">{stat.title}</p>
+                <p className="text-xs font-bold text-gray-400 dark:text-gray-500 mb-1">{stat.title}</p>
                 <p className="text-2xl font-black text-gray-900 dark:text-white">{stat.value}</p>
               </div>
             </div>
@@ -161,7 +156,7 @@ export default function EmployeesView() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-8 border-b border-gray-200 dark:border-slate-700 mb-8 overflow-x-auto whitespace-nowrap">
+      <div className="flex items-center gap-8 border-b border-gray-200 dark:border-gray-800 mb-8 overflow-x-auto whitespace-nowrap">
         {(['Active', 'Inactive', 'Archived'] as const).map(tab => (
           <button 
             key={tab}
@@ -175,7 +170,7 @@ export default function EmployeesView() {
 
       {/* Filters & Actions */}
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
-        <div className="bg-white dark:bg-slate-800 flex items-center gap-2 border border-gray-100 dark:border-slate-700 rounded-lg px-3 py-2.5 w-full lg:w-80 shadow-sm">
+        <div className="bg-white dark:bg-black flex items-center gap-2 border border-gray-100 dark:border-gray-800 rounded-lg px-3 py-2.5 w-full lg:w-80 shadow-sm">
           <Search className="text-gray-400" size={18} />
           <input 
             type="text" 
@@ -187,22 +182,22 @@ export default function EmployeesView() {
         </div>
         
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className="flex bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-1 shadow-sm">
+          <div className="flex bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg p-1 shadow-sm">
             <button 
               onClick={() => setViewMode('list')}
-              className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-gray-900 dark:bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-gray-900 dark:bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
             >
               <List size={18} />
             </button>
             <button 
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-gray-900 dark:bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-gray-900 dark:bg-blue-600 text-white' : 'text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
             >
               <Grid size={18} />
             </button>
           </div>
 
-          <button className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-700 dark:text-slate-300 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2">
+          <button className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-900 flex items-center gap-2">
             <Calendar size={18} className="text-gray-400" /> Date Filter
           </button>
           
@@ -219,7 +214,7 @@ export default function EmployeesView() {
       </div>
 
       {/* Content Area */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
+      <div className="bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm min-h-[400px] max-h-[550px] overflow-y-auto custom-scrollbar">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center h-[400px] gap-4">
             <Loader2 size={32} className="text-blue-600 animate-spin" />
@@ -229,25 +224,27 @@ export default function EmployeesView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-50 dark:border-slate-700">
-                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-slate-200">Name</th>
-                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-slate-200">Team</th>
-                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-slate-200">Email Address</th>
-                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-slate-200">Status</th>
+                <tr className="border-b border-gray-50 dark:border-gray-800">
+                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Name</th>
+                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Designation</th>
+                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Department</th>
+                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Role</th>
+                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Email Address</th>
+                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-slate-700">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {filteredEmployees.length > 0 ? filteredEmployees.map((emp) => (
-                  <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group">
+                  <tr key={emp.id} className="hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <img 
                             src={emp.avatar} 
-                            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-slate-600"
+                            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800"
                             referrerPolicy="no-referrer"
                           />
-                          <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-800 ${emp.isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+                          <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-black ${emp.isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900 dark:text-white">{emp.name}</p>
@@ -256,10 +253,26 @@ export default function EmployeesView() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-500 dark:text-slate-400 font-medium">{emp.team}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{emp.designation}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-gray-500 dark:text-slate-400 font-medium">{emp.email}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{emp.department}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <select 
+                        className="bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] font-bold px-2 py-1 rounded-md border-none outline-none"
+                        value={emp.role}
+                        onChange={(e) => {
+                          // Handle role change logic
+                        }}
+                      >
+                        <option value="Administrator">Administrator</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Employee">Employee</option>
+                      </select>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{emp.email}</span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
@@ -288,21 +301,21 @@ export default function EmployeesView() {
         ) : (
           <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredEmployees.map(emp => (
-              <div key={emp.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+              <div key={emp.id} className="bg-white dark:bg-black rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-1 bg-blue-600 opacity-0 group-hover:opacity-100 transition-all" />
                 <div className="flex flex-col items-center text-center">
                   <div className="relative mb-4">
-                    <img src={emp.avatar} className="w-20 h-20 rounded-2xl object-cover border-4 border-white dark:border-slate-700 shadow-lg" referrerPolicy="no-referrer" />
-                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-slate-800 ${emp.status === 'Active' ? 'bg-emerald-500' : 'bg-gray-300'}`} />
+                    <img src={emp.avatar} className="w-20 h-20 rounded-2xl object-cover border-4 border-white dark:border-gray-800 shadow-lg" referrerPolicy="no-referrer" />
+                    <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-4 border-white dark:border-black ${emp.status === 'Active' ? 'bg-emerald-500' : 'bg-gray-300'}`} />
                   </div>
                   <h4 className="font-bold text-gray-900 dark:text-white mb-1">{emp.name}</h4>
                   <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-4">{emp.role}</p>
                   
-                  <div className="w-full space-y-3 pt-4 border-t border-gray-50 dark:border-slate-700">
-                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-slate-400">
+                  <div className="w-full space-y-3 pt-4 border-t border-gray-50 dark:border-gray-800">
+                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <Mail size={14} className="text-gray-400" /> {emp.email}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-slate-400">
+                    <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                       <Phone size={14} className="text-gray-400" /> {emp.phone}
                     </div>
                   </div>
@@ -312,7 +325,7 @@ export default function EmployeesView() {
                       setEditingEmployee(emp);
                       setIsModalOpen(true);
                     }}
-                    className="mt-6 w-full py-2.5 rounded-xl border border-gray-100 dark:border-slate-700 text-xs font-bold text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all"
+                    className="mt-6 w-full py-2.5 rounded-xl border border-gray-100 dark:border-gray-800 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-900 transition-all"
                   >
                     View Profile
                   </button>

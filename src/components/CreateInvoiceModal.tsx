@@ -10,7 +10,10 @@ interface CreateInvoiceModalProps {
   onSuccess: () => void;
 }
 
+import { useAppContext } from '../context/AppContext';
+
 export default function CreateInvoiceModal({ isOpen, onClose, onSuccess }: CreateInvoiceModalProps) {
+  const { showToast } = useAppContext();
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -105,7 +108,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, onSuccess }: Creat
       onSuccess();
       onClose();
     } catch (err: any) {
-      alert(`Failed to save invoice: ${err.message}`);
+      showToast(`Failed to save invoice: ${err.message}`, 'error');
     } finally {
       setLoading(false);
     }

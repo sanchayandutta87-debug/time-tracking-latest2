@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   User, Building2, Briefcase, 
   Settings as SettingsIcon, Trash2, Camera, 
@@ -7,8 +7,9 @@ import {
   Zap, Target, Wand2, Eye, EyeOff, Clock, X, Loader2, Calendar
 } from 'lucide-react';
 import { supabase } from '../utils/supabase';
+import { useAppContext } from '../context/AppContext';
 
-type SettingsTab = 'account' | 'company' | 'work' | 'system';
+type SettingsTab = 'company' | 'work' | 'system';
 type AccountSubTab = 'profile' | 'security';
 
 const COUNTRIES = [
@@ -22,10 +23,17 @@ const COUNTRIES = [
 ];
 
 export default function SettingsView() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
-  const [activeSubTab, setActiveSubTab] = useState<string>('profile');
+  const [activeTab, setActiveTab] = useState<SettingsTab>('company');
+  const [activeSubTab, setActiveSubTab] = useState<string>('organization');
   const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const { showToast, askConfirm } = useAppContext();
+
+  const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number = 15000) => {
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timed out. Please check your Supabase connection and keys.')), timeoutMs)
+    );
+    return Promise.race([promise, timeout]);
+  };
 
   // Profile State
   const [profileData, setProfileData] = useState({
@@ -55,204 +63,73 @@ export default function SettingsView() {
 
   // Company State
   const [companyData, setCompanyData] = useState({
-    name: 'Max INC',
-    owner: 'Osborne',
-    email: 'stevenosborne@example.com',
+    name: '',
+    owner_name: '',
+    email: '',
     countryCode: '+1',
-    phone: '(201) 555-0123',
-    industry: 'Technology',
-    teamSize: '51-200',
-    address: 'Bamangacchi',
+    phone: '',
+    industry: '',
+    teamSize: '',
+    address: '',
     country: '',
     state: '',
     city: '',
     postalCode: '',
-    taxId: 'XX-XXXXXXX',
-    timezone: '(GMT-08:00) Pacific Time (US & Canada)',
-    currency: 'USD ($) - US Dollar',
-    website: 'https://example.com'
+    taxId: '',
+    timezone: '',
+    currency: '',
+    website: ''
   });
-  const [companyLogo, setCompanyLogo] = useState('https://picsum.photos/seed/company/120/120');
+  const [companyLogo, setCompanyLogo] = useState('');
   const companyFileInputRef = React.useRef<HTMLInputElement>(null);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
+  const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+  const [isDeptModalOpen, setIsDeptModalOpen] = useState(false);
+  const [newDept, setNewDept] = useState({ name: '', head: '', budget: '' });
 
-  // Departments State
-  const [departments, setDepartments] = useState([
-    { id: 1, name: 'Engineering', head: 'Alex Rivera', members: 42, budget: '$1.2M' },
-    { id: 2, name: 'Product', head: 'Sarah Chen', members: 18, budget: '$600K' },
-    { id: 3, name: 'Marketing', head: 'James Wilson', members: 24, budget: '$450K' },
-    { id: 4, name: 'Sales', head: 'Maria Garcia', members: 35, budget: '$800K' },
-    { id: 5, name: 'HR', head: 'Linda Thompson', members: 8, budget: '$200K' },
-    { id: 6, name: 'Finance', head: 'Robert Miller', members: 12, budget: '$350K' }
-  ]);
+  const [isDesigModalOpen, setIsDesigModalOpen] = useState(false);
+  const [selectedDeptForDesig, setSelectedDeptForDesig] = useState<any>(null);
+  const [newDesigName, setNewDesigName] = useState('');
 
-  // Locations State
-  const [locations, setLocations] = useState([
-    { id: 1, name: 'Headquarters', address: 'San Francisco, CA', type: 'Office', employees: 120 },
-    { id: 2, name: 'London Office', address: 'London, UK', type: 'Office', employees: 45 },
-    { id: 3, name: 'Remote Hub', address: 'Global', type: 'Remote', employees: 85 }
-  ]);
 
   // Employee Types State
-  const [employeeTypes, setEmployeeTypes] = useState([
-    { id: 1, type: 'Full-Time', count: 150, color: 'bg-emerald-100 text-emerald-600' },
-    { id: 2, type: 'Part-Time', count: 25, color: 'bg-blue-100 text-blue-600' },
-    { id: 3, type: 'Contractor', count: 40, color: 'bg-amber-100 text-amber-600' },
-    { id: 4, type: 'Intern', count: 12, color: 'bg-purple-100 text-purple-600' }
-  ]);
+  const [employeeTypes, setEmployeeTypes] = useState<any[]>([]);
+  const [isLoadingEmployeeTypes, setIsLoadingEmployeeTypes] = useState(false);
 
-  // Holidays State
-  const [holidays, setHolidays] = useState<any[]>([]);
-  const [isHolidayModalOpen, setIsHolidayModalOpen] = useState(false);
-  const [isLoadingHolidays, setIsLoadingHolidays] = useState(false);
-  const [newHoliday, setNewHoliday] = useState({
-    name: '',
-    status: 'Active'
-  });
+  // Modal States
+  const [isTypeModalOpen, setIsTypeModalOpen] = useState(false);
+  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
 
-  const fetchHolidays = async () => {
-    setIsLoadingHolidays(true);
-    try {
-      const { data, error } = await supabase
-        .from('leave_types')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setHolidays(data || []);
-    } catch (error) {
-      console.error('Error fetching holiday types:', error);
-    } finally {
-      setIsLoadingHolidays(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'company' && activeSubTab === 'holidays') {
-      fetchHolidays();
-    }
-  }, [activeTab, activeSubTab]);
-
-  const handleAddHoliday = async () => {
-    if (!newHoliday.name.trim()) return;
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('leave_types')
-        .insert({
-          name: newHoliday.name,
-          status: 'Active'
-        });
-
-      if (error) throw error;
-      setNewHoliday({ name: '', status: 'Active' });
-      setIsHolidayModalOpen(false);
-      fetchHolidays();
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error adding holiday type:', error);
-      alert('Error adding holiday type');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeleteHoliday = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this holiday?')) return;
-    try {
-      const { error } = await supabase
-        .from('holidays')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      fetchHolidays();
-    } catch (error) {
-      console.error('Error deleting holiday:', error);
-    }
-  };
-
+  const [newType, setNewType] = useState({ type: '', color: 'bg-blue-500/10 text-blue-600' });
+  const [newShift, setNewShift] = useState({ name: '', time: '', color: 'bg-blue-100 text-blue-600' });
+  
   // Work Settings State
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
   const [newLeaveName, setNewLeaveName] = useState('');
-  const [isLoadingLeaves, setIsLoadingLeaves] = useState(false);
-
-  const fetchLeaveTypes = async () => {
-    setIsLoadingLeaves(true);
-    try {
-      const { data, error } = await supabase
-        .from('leave_types')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setLeaveTypes(data || []);
-    } catch (error) {
-      console.error('Error fetching leave types:', error);
-    } finally {
-      setIsLoadingLeaves(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'work' && activeSubTab === 'leave-types') {
-      fetchLeaveTypes();
-    }
-  }, [activeTab, activeSubTab]);
-
-  const handleAddLeaveType = async () => {
-    if (!newLeaveName.trim()) return;
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from('leave_types')
-        .insert({ name: newLeaveName, status: 'Active' });
-
-      if (error) throw error;
-      setNewLeaveName('');
-      setIsLeaveModalOpen(false);
-      fetchLeaveTypes();
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 3000);
-    } catch (error) {
-      console.error('Error adding leave type:', error);
-      alert('Error adding leave type');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDeleteLeaveType = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this leave type?')) return;
-    try {
-      const { error } = await supabase
-        .from('leave_types')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      fetchLeaveTypes();
-    } catch (error) {
-      console.error('Error deleting leave type:', error);
-    }
-  };
-
-  const [shifts, setShifts] = useState([
-    { id: 1, name: 'Morning Shift', time: '09:00 AM - 06:00 PM', members: 120, color: 'bg-blue-100 text-blue-600' },
-    { id: 2, name: 'Evening Shift', time: '02:00 PM - 11:00 PM', members: 45, color: 'bg-amber-100 text-amber-600' },
-    { id: 3, name: 'Night Shift', time: '10:00 PM - 07:00 AM', members: 30, color: 'bg-purple-100 text-purple-600' }
-  ]);
-
+  const [shifts, setShifts] = useState<any[]>([]);
   const [workingHours, setWorkingHours] = useState([
     { day: 'Monday', start: '09:00', end: '18:00', active: true },
     { day: 'Tuesday', start: '09:00', end: '18:00', active: true },
     { day: 'Wednesday', start: '09:00', end: '18:00', active: true },
     { day: 'Thursday', start: '09:00', end: '18:00', active: true },
     { day: 'Friday', start: '09:00', end: '18:00', active: true },
-    { day: 'Saturday', start: '09:00', end: '18:00', active: false },
-    { day: 'Sunday', start: '09:00', end: '18:00', active: false },
+    { day: 'Saturday', start: '09:00', end: '13:00', active: false },
+    { day: 'Sunday', start: '09:00', end: '13:00', active: false }
   ]);
+  const [trackerSettings, setTrackerSettings] = useState({
+    lateComingTime: '15',
+    dailyOvertimeLimit: '2',
+    screenshots: true,
+    screenshotInterval: '10',
+    screenshotDelete: true,
+    blurScreenshots: true,
+    employeeEdit: true,
+    workSchedule: true,
+    websiteApplication: true
+  });
 
   // System Settings State
   const [localization, setLocalization] = useState({
@@ -268,54 +145,248 @@ export default function SettingsView() {
     thousandSeparator: ','
   });
 
-  // Tracker Settings State
-  const [trackerSettings, setTrackerSettings] = useState({
-    lateComingTime: '15',
-    dailyOvertimeLimit: '2',
-    screenshots: true,
-    screenshotInterval: '10',
-    screenshotDelete: true,
-    blurScreenshots: true,
-    employeeEdit: true,
-    workSchedule: true,
-    websiteApplication: true
-  });
+  const isFetchingRef = useRef<{ [key: string]: boolean }>({});
 
+  // Fetch Company Settings
+  const fetchCompanySettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('company_settings')
+        .select('*')
+        .eq('id', '00000000-0000-0000-0000-000000000000')
+        .single();
 
-
-  // Handlers
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProfileData({ ...profileData, [e.target.name]: e.target.value });
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      setProfileImage(url);
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data) {
+        setCompanyData({
+          name: data.name || '',
+          owner_name: data.owner_name || '',
+          email: data.email || '',
+          countryCode: '+1', // Simplified
+          phone: data.phone || '',
+          industry: data.industry || '',
+          teamSize: data.team_size || '',
+          address: data.address || '',
+          country: data.country || '',
+          state: data.state || '',
+          city: data.city || '',
+          postalCode: data.postal_code || '',
+          taxId: data.tax_id || '',
+          timezone: data.timezone || '',
+          currency: data.currency || '',
+          website: data.website || ''
+        });
+        setCompanyLogo(data.logo_url || '');
+      }
+    } catch (error) {
+      console.error('Error fetching company settings:', error);
     }
   };
 
-  const handleRemoveImage = () => {
-    setProfileImage(`https://ui-avatars.com/api/?name=${profileData.firstName}+${profileData.lastName}&background=random`);
-  };
+  const fetchDepartments = async () => {
+    if (isFetchingRef.current['departments']) return;
+    isFetchingRef.current['departments'] = true;
+    setIsLoadingDepartments(true);
+    try {
+      const { data: deptData, error: deptError } = await fetchWithTimeout(supabase.from('departments').select('*').order('name')) as any;
+      if (deptError) throw deptError;
+      setDepartments(deptData || []);
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPasswords({ ...passwords, [e.target.name]: e.target.value });
-  };
-
-  const handleUpdatePassword = () => {
-    if (passwords.new !== passwords.confirm) {
-      alert('New passwords do not match!');
-      return;
+      const { data: desigData, error: desigError } = await fetchWithTimeout(supabase.from('designations').select('*').order('name')) as any;
+      if (!desigError) setDesignations(desigData || []);
+    } catch (error: any) {
+      console.error('Error fetching departments:', error);
+      showToast(error.message || 'Failed to fetch departments', 'error');
+    } finally {
+      setIsLoadingDepartments(false);
+      isFetchingRef.current['departments'] = false;
     }
-    setPasswords({ current: '', new: '', confirm: '' });
-    handleSave();
+  };
+
+  const fetchEmployeeTypes = async () => {
+    if (isFetchingRef.current['employeeTypes']) return;
+    isFetchingRef.current['employeeTypes'] = true;
+    setIsLoadingEmployeeTypes(true);
+    try {
+      const { data, error } = await fetchWithTimeout(supabase.from('employee_types').select('*').order('type')) as any;
+      if (error) throw error;
+      setEmployeeTypes(data || []);
+    } catch (error: any) {
+      console.error('Error fetching employee types:', error);
+      showToast(error.message || 'Failed to fetch employee types', 'error');
+    } finally {
+      setIsLoadingEmployeeTypes(false);
+      isFetchingRef.current['employeeTypes'] = false;
+    }
+  };
+
+  const fetchLeaveTypes = async () => {
+    if (isFetchingRef.current['leaveTypes']) return;
+    isFetchingRef.current['leaveTypes'] = true;
+    setIsLoadingLeaves(true);
+    try {
+      const { data, error } = await fetchWithTimeout(supabase.from('leave_types').select('*').order('name')) as any;
+      if (error) throw error;
+      setLeaveTypes(data || []);
+    } catch (error: any) {
+      console.error('Error fetching leave types:', error);
+      showToast(error.message || 'Failed to fetch leave types', 'error');
+    } finally {
+      setIsLoadingLeaves(false);
+      isFetchingRef.current['leaveTypes'] = false;
+    }
+  };
+
+  const fetchWorkSettings = async () => {
+    if (isFetchingRef.current['workSettings']) return;
+    isFetchingRef.current['workSettings'] = true;
+    try {
+      const { data, error } = await fetchWithTimeout(supabase.from('work_settings').select('*')) as any;
+      if (error) throw error;
+      if (data && data.length > 0) {
+        const settings = data[0];
+        setWorkingHours(settings.working_hours || workingHours);
+        setTrackerSettings(settings.tracker_settings || trackerSettings);
+      }
+    } catch (error) {
+      console.error('Error fetching work settings:', error);
+    } finally {
+      isFetchingRef.current['workSettings'] = false;
+    }
+  };
+
+  const handleSaveWorkSettings = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('work_settings').upsert({
+        id: '00000000-0000-0000-0000-000000000000',
+        working_hours: workingHours,
+        tracker_settings: trackerSettings
+      });
+      if (error) throw error;
+      showToast('Work settings saved successfully');
+    } catch (error: any) {
+      console.error('Error saving work settings:', error);
+      showToast(error.message || 'Failed to save settings', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleAddDepartment = async () => {
+    if (!newDept.name) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('departments').insert({
+        name: newDept.name,
+        head: newDept.head,
+        budget: newDept.budget,
+        members_count: 0
+      });
+      if (error) throw error;
+      fetchDepartments();
+      setIsDeptModalOpen(false);
+      setNewDept({ name: '', head: '', budget: '' });
+      showToast('Department added successfully');
+    } catch (error: any) {
+      console.error('Error adding department:', error);
+      showToast(error.message || 'Failed to add department', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteDepartment = async (id: string) => {
+    askConfirm('Delete Department', 'Are you sure you want to remove this department? This cannot be undone.', async () => {
+      try {
+        const { error } = await supabase.from('departments').delete().eq('id', id);
+        if (error) throw error;
+        fetchDepartments();
+        showToast('Department deleted successfully');
+      } catch (error) {
+        console.error('Error deleting department:', error);
+        showToast('Failed to delete department', 'error');
+      }
+    });
+  };
+
+
+  const handleAddEmployeeType = async () => {
+    if (!newType.type.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('employee_types').insert({ 
+        type: newType.type.trim(), 
+        color: newType.color 
+      });
+      if (error) throw error;
+      await fetchEmployeeTypes();
+      setIsTypeModalOpen(false);
+      setNewType({ type: '', color: 'bg-blue-500/10 text-blue-600' });
+      showToast('Employee type added successfully', 'success');
+    } catch (error: any) {
+      console.error('Error adding employee type:', error);
+      showToast(error.message || 'Failed to add employee type', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteEmployeeType = async (id: string) => {
+    askConfirm('Delete Employee Type', 'Are you sure you want to remove this employee category?', async () => {
+      try {
+        const { error } = await supabase.from('employee_types').delete().eq('id', id);
+        if (error) throw error;
+        fetchEmployeeTypes();
+        showToast('Employee type removed');
+      } catch (error) {
+        console.error('Error deleting employee type:', error);
+        showToast('Failed to delete employee type', 'error');
+      }
+    });
   };
 
   const handleCompanyChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setCompanyData({ ...companyData, [e.target.name]: e.target.value });
   };
 
+  const handleAddDesignation = async () => {
+    if (!newDesigName.trim() || !selectedDeptForDesig) return;
+    setIsSaving(true);
+    try {
+      const { data, error } = await supabase.from('designations').insert({
+        name: newDesigName.trim(),
+        department_id: selectedDeptForDesig.id,
+        department_name: selectedDeptForDesig.name
+      }).select().single();
+
+      if (error) throw error;
+      setDesignations(prev => [...(prev || []), data]);
+      setNewDesigName('');
+      setIsDesigModalOpen(false);
+      showToast('Designation added successfully', 'success');
+    } catch (error: any) {
+      console.error('Error adding designation:', error);
+      showToast(error.message || 'Failed to add designation', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteDesignation = async (id: string) => {
+    try {
+      const { error } = await supabase.from('designations').delete().eq('id', id);
+      if (error) throw error;
+      setDesignations(prev => (prev || []).filter(d => d.id !== id));
+      showToast('Designation removed', 'success');
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    }
+  };
+
+  const handleResetCompany = () => {
+    fetchCompanySettings();
+  };
   const handleCompanyLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const url = URL.createObjectURL(e.target.files[0]);
@@ -326,8 +397,6 @@ export default function SettingsView() {
   const handleRemoveCompanyLogo = () => {
     setCompanyLogo(`https://ui-avatars.com/api/?name=${companyData.name}&background=random`);
   };
-
-
 
   // Appearance State
   const [theme, setTheme] = useState('Light');
@@ -365,42 +434,6 @@ export default function SettingsView() {
 
 
 
-  const handleResetProfile = () => {
-    setProfileData({
-      firstName: 'Shaun',
-      lastName: 'Farley',
-      email: 'shaun.farley@example.com',
-      countryCode: '+1',
-      phone: '(555) 000-0000',
-      address: 'Bamangacchi',
-      country: '',
-      state: '',
-      city: '',
-      postalCode: ''
-    });
-  };
-
-  const handleResetCompany = () => {
-    setCompanyData({
-      name: 'Max INC',
-      owner: 'Osborne',
-      email: 'stevenosborne@example.com',
-      countryCode: '+1',
-      phone: '(201) 555-0123',
-      industry: 'Technology',
-      teamSize: '51-200',
-      address: 'Bamangacchi',
-      country: '',
-      state: '',
-      city: '',
-      postalCode: '',
-      taxId: 'XX-XXXXXXX',
-      timezone: '(GMT-08:00) Pacific Time (US & Canada)',
-      currency: 'USD ($) - US Dollar',
-      website: 'https://example.com'
-    });
-  };
-
   const handleResetLocalization = () => {
     setLocalization({
       timeZone: '(+5:30) GMT',
@@ -419,7 +452,6 @@ export default function SettingsView() {
 
 
   const sidebarItems = [
-    { id: 'account', label: 'Account Settings', icon: <User size={18} /> },
     { id: 'company', label: 'Company Settings', icon: <Building2 size={18} /> },
     { id: 'work', label: 'Work Settings', icon: <Briefcase size={18} /> },
     { id: 'system', label: 'System Settings', icon: <SettingsIcon size={18} /> },
@@ -432,6 +464,135 @@ export default function SettingsView() {
     else if (tab === 'work') setActiveSubTab('leave-types');
     else if (tab === 'system') setActiveSubTab('localization');
   };
+
+  const handleAddLeaveType = async () => {
+    if (!newLeaveName.trim()) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('leave_types').insert({
+        name: newLeaveName.trim(),
+        status: 'active'
+      });
+      if (error) throw error;
+      fetchLeaveTypes();
+      setIsLeaveModalOpen(false);
+      setNewLeaveName('');
+      showToast('Leave type added successfully');
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteLeaveType = async (id: string) => {
+    askConfirm('Delete Leave Type', 'Are you sure you want to remove this leave type?', async () => {
+      try {
+        const { error } = await supabase.from('leave_types').delete().eq('id', id);
+        if (error) throw error;
+        fetchLeaveTypes();
+        showToast('Leave type deleted');
+      } catch (error) {
+        console.error('Error deleting leave type:', error);
+        showToast('Failed to delete leave type', 'error');
+      }
+    });
+  };
+
+  const handleAddShift = async () => {
+    if (!newShift.name || !newShift.time) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.from('shifts').insert({
+        name: newShift.name,
+        time: newShift.time,
+        color: newShift.color,
+        members: 0
+      });
+      if (error) throw error;
+      setIsShiftModalOpen(false);
+      setNewShift({ name: '', time: '', color: 'bg-blue-100 text-blue-600' });
+      fetchWorkSettings();
+      showToast('Shift added successfully');
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteShift = async (id: string) => {
+    askConfirm('Delete Shift', 'Are you sure you want to remove this work shift?', async () => {
+      try {
+        const { error } = await supabase.from('shifts').delete().eq('id', id);
+        if (error) throw error;
+        fetchWorkSettings();
+        showToast('Shift removed');
+      } catch (error) {
+        console.error('Error deleting shift:', error);
+        showToast('Failed to delete shift', 'error');
+      }
+    });
+  };
+
+  const handleSaveCompany = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('company_settings')
+        .upsert({
+          id: '00000000-0000-0000-0000-000000000000',
+          name: companyData.name,
+          owner_name: companyData.owner_name,
+          email: companyData.email,
+          phone: companyData.phone,
+          industry: companyData.industry,
+          team_size: companyData.teamSize,
+          address: companyData.address,
+          country: companyData.country,
+          state: companyData.state,
+          city: companyData.city,
+          postal_code: companyData.postalCode,
+          tax_id: companyData.taxId,
+          timezone: companyData.timezone,
+          currency: companyData.currency,
+          website: companyData.website,
+          logo_url: companyLogo
+        });
+
+      if (error) throw error;
+      showToast('Company settings saved successfully');
+    } catch (error: any) {
+      console.error('Error saving company settings:', error);
+      showToast(error.message || 'Failed to save settings', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+
+  // Load Initial Data
+  useEffect(() => {
+    fetchCompanySettings();
+    fetchDepartments();
+    fetchEmployeeTypes();
+    fetchLeaveTypes();
+    fetchWorkSettings();
+  }, []);
+
+  // Sync sub-tabs
+  useEffect(() => {
+    if (activeTab === 'company') {
+      if (activeSubTab === 'organization') fetchCompanySettings();
+      if (activeSubTab === 'departments') fetchDepartments();
+      if (activeSubTab === 'employee-type') fetchEmployeeTypes();
+    }
+    if (activeTab === 'work') {
+      if (activeSubTab === 'leave-types') fetchLeaveTypes();
+      else fetchWorkSettings();
+    }
+  }, [activeTab, activeSubTab]);
+
 
   return (
     <div className="p-8 bg-white dark:bg-black min-h-full">
@@ -469,446 +630,111 @@ export default function SettingsView() {
         {/* Main Content */}
         <div className="flex-1">
           <div className="bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
-            {activeTab === 'account' && (
-              <>
-                {/* Sub Tabs */}
-                <div className="flex items-center gap-8 px-8 border-b border-gray-100 dark:border-gray-800">
-                  <button 
-                    onClick={() => setActiveSubTab('profile')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'profile' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Profile Settings
-                    {activeSubTab === 'profile' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
-                  <button 
-                    onClick={() => setActiveSubTab('security')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'security' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Security
-                    {activeSubTab === 'security' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
-                </div>
-
-                <div className="p-8">
-                  {activeSubTab === 'profile' ? (
-                    <div className="space-y-10">
-                      {/* Profile Picture */}
-                      <section>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Profile</h3>
-                        <p className="text-xs text-gray-400 mb-6">Upload profile picture</p>
-                        <div className="flex items-center gap-6">
-                          <div className="relative">
-                            <img 
-                              src={profileImage} 
-                              alt="Profile" 
-                              className="w-24 h-24 rounded-full object-cover border-4 border-gray-50"
-                              referrerPolicy="no-referrer"
-                            />
-                            <button onClick={() => fileInputRef.current?.click()} className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full border-2 border-white shadow-sm hover:bg-blue-700 transition-colors">
-                              <Camera size={14} />
-                            </button>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                              <button onClick={() => fileInputRef.current?.click()} className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">
-                                Change Image
-                              </button>
-                              <button onClick={handleRemoveImage} className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors">
-                                Remove
-                              </button>
-                            </div>
-                            <p className="text-[10px] text-gray-400">Recommended size is 300px x 300px</p>
-                          </div>
-                        </div>
-                      </section>
-
-                      <hr className="border-gray-50" />
-
-                      {/* Basic Information */}
-                      <section>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Basic Information</h3>
-                        <p className="text-xs text-gray-400 mb-6">Your personal information</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">First Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              name="firstName"
-                              value={profileData.firstName}
-                              onChange={handleProfileChange}
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Last Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              name="lastName"
-                              value={profileData.lastName}
-                              onChange={handleProfileChange}
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Email Address <span className="text-red-500">*</span></label>
-                            <input 
-                              type="email" 
-                              name="email"
-                              value={profileData.email}
-                              onChange={handleProfileChange}
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Phone Number <span className="text-red-500">*</span></label>
-                            <div className="flex gap-2">
-                              <div className="relative w-28">
-                                <select 
-                                  name="countryCode"
-                                  value={profileData.countryCode}
-                                  onChange={handleProfileChange}
-                                  className="w-full appearance-none px-3 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none pr-8 cursor-pointer"
-                                >
-                                  {COUNTRIES.map(c => (
-                                    <option key={c.code} value={c.dialCode}>
-                                      {c.flag} {c.code} {c.dialCode}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                              </div>
-                              <input 
-                                type="tel" 
-                                name="phone"
-                                value={profileData.phone}
-                                onChange={handleProfileChange}
-                                className="flex-1 px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </section>
-
-                      <hr className="border-gray-50" />
-
-                      {/* Address Information */}
-                      <section>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Address Information</h3>
-                        <p className="text-xs text-gray-400 mb-6">Your address details</p>
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Address <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              name="address"
-                              value={profileData.address}
-                              onChange={handleProfileChange}
-                              placeholder="Enter your address"
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Country <span className="text-red-500">*</span></label>
-                              <input 
-                                type="text"
-                                name="country"
-                                value={profileData.country}
-                                onChange={handleProfileChange}
-                                placeholder="Enter your country"
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">State / Province <span className="text-red-500">*</span></label>
-                              <input 
-                                type="text"
-                                name="state"
-                                value={profileData.state}
-                                onChange={handleProfileChange}
-                                placeholder="Enter your state"
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">City <span className="text-red-500">*</span></label>
-                              <input 
-                                type="text"
-                                name="city"
-                                value={profileData.city}
-                                onChange={handleProfileChange}
-                                placeholder="Enter your city"
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Postal Code <span className="text-red-500">*</span></label>
-                              <input 
-                                type="text" 
-                                name="postalCode"
-                                value={profileData.postalCode}
-                                onChange={handleProfileChange}
-                                placeholder="Enter postal code"
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </section>
-
-                      {/* Actions */}
-                      <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-50">
-                        <button 
-                          onClick={handleResetProfile}
-                          className="px-6 py-2.5 bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-lg hover:bg-gray-200 transition-colors"
-                        >
-                          Cancel
-                        </button>
-                        <button 
-                          onClick={handleSave}
-                          disabled={isSaving}
-                          className="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
-                        >
-                          {isSaving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-10">
-                      {/* Security Tab Content */}
-                      <section>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Password Management</h3>
-                        <p className="text-xs text-gray-400 mb-6">Update your password to stay secure</p>
-                        <div className="grid grid-cols-1 gap-6 max-w-md">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Current Password</label>
-                            <div className="relative">
-                              <input 
-                                type={showCurrentPassword ? "text" : "password"} 
-                                name="current"
-                                value={passwords.current}
-                                onChange={handlePasswordChange}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
-                              />
-                              <button 
-                                type="button" 
-                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 transition-colors"
-                              >
-                                {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                              </button>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">New Password</label>
-                            <div className="relative">
-                              <input 
-                                type={showNewPassword ? "text" : "password"} 
-                                name="new"
-                                value={passwords.new}
-                                onChange={handlePasswordChange}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
-                              />
-                              <button 
-                                type="button" 
-                                onClick={() => setShowNewPassword(!showNewPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 transition-colors"
-                              >
-                                {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                              </button>
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Confirm New Password</label>
-                            <div className="relative">
-                              <input 
-                                type={showConfirmPassword ? "text" : "password"} 
-                                name="confirm"
-                                value={passwords.confirm}
-                                onChange={handlePasswordChange}
-                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all pr-10"
-                              />
-                              <button 
-                                type="button" 
-                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400 transition-colors"
-                              >
-                                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                              </button>
-                            </div>
-                          </div>
-                          <button onClick={handleUpdatePassword} className="w-fit px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm">
-                            Update Password
-                          </button>
-                        </div>
-                      </section>
-
-
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
 
             {activeTab === 'company' && (
               <>
                 {/* Company Sub Tabs */}
                 <div className="flex items-center gap-8 px-8 border-b border-gray-100 dark:border-gray-800">
-                  <button 
-                    onClick={() => setActiveSubTab('organization')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'organization' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Organization
-                    {activeSubTab === 'organization' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
-                  <button 
-                    onClick={() => setActiveSubTab('departments')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'departments' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Departments
-                    {activeSubTab === 'departments' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
-                  <button 
-                    onClick={() => setActiveSubTab('locations')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'locations' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Locations
-                    {activeSubTab === 'locations' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
-                  <button 
-                    onClick={() => setActiveSubTab('employee-type')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'employee-type' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Employee Type
-                    {activeSubTab === 'employee-type' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
-                  <button 
-                    onClick={() => setActiveSubTab('holidays')}
-                    className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === 'holidays' ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
-                  >
-                    Holidays
-                    {activeSubTab === 'holidays' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
-                  </button>
+                  {['Organization', 'Departments', 'Employee Type'].map((tab) => {
+                    const id = tab.toLowerCase().replace(' ', '-');
+                    return (
+                      <button 
+                        key={id}
+                        onClick={() => setActiveSubTab(id)}
+                        className={`py-4 text-sm font-bold transition-all relative ${activeSubTab === id ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600 dark:text-gray-400'}`}
+                      >
+                        {tab}
+                        {activeSubTab === id && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full" />}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <div className="p-8">
                   {activeSubTab === 'organization' ? (
-                    <div className="space-y-10">
+                    <div className="space-y-8">
                       {/* Company Profile */}
                       <section>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Profile</h3>
-                        <p className="text-xs text-gray-400 mb-6">Upload profile picture</p>
-                        <div className="flex items-center gap-6">
-                          <div className="relative">
-                            <input 
-                              type="file"
-                              ref={companyFileInputRef}
-                              onChange={handleCompanyLogoUpload}
-                              className="hidden"
-                              accept="image/*"
-                            />
-                            <div className="w-24 h-24 rounded-full bg-black flex items-center justify-center p-4 border-4 border-gray-50 overflow-hidden">
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-6">Company Profile</h3>
+                        <div className="flex flex-col md:flex-row gap-8 items-start">
+                          <div className="relative group">
+                            <div className="w-24 h-24 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden">
                               <img 
-                                src={companyLogo} 
+                                src={companyLogo || `https://ui-avatars.com/api/?name=${companyData.name}&background=random`} 
                                 alt="Company Logo" 
-                                className="w-full h-full object-contain invert"
-                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
                               />
                             </div>
                             <button 
                               onClick={() => companyFileInputRef.current?.click()}
-                              className="absolute bottom-0 right-0 p-1.5 bg-blue-600 text-white rounded-full border-2 border-white shadow-sm hover:bg-blue-700 transition-colors"
+                              className="absolute -bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-lg shadow-lg hover:bg-blue-700 transition-all active:scale-90"
                             >
                               <Camera size={14} />
                             </button>
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-3 mb-2">
-                              <button 
-                                onClick={() => companyFileInputRef.current?.click()}
-                                className="px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-black transition-colors"
-                              >
-                                Change Image
-                              </button>
+                            <input 
+                              type="file" 
+                              ref={companyFileInputRef}
+                              onChange={handleCompanyLogoUpload}
+                              className="hidden" 
+                              accept="image/*"
+                            />
+                            {companyLogo && (
                               <button 
                                 onClick={handleRemoveCompanyLogo}
-                                className="px-4 py-2 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-colors"
+                                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                               >
-                                Remove
+                                <Trash2 size={10} />
                               </button>
+                            )}
+                          </div>
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Company Name <span className="text-red-500">*</span></label>
+                              <input 
+                                type="text" 
+                                name="name"
+                                value={companyData.name}
+                                onChange={handleCompanyChange}
+                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                              />
                             </div>
-                            <p className="text-[10px] text-gray-400">Recommended size is 300px x 300px</p>
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Company Email <span className="text-red-500">*</span></label>
+                              <input 
+                                type="email" 
+                                name="email"
+                                value={companyData.email}
+                                onChange={handleCompanyChange}
+                                className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Phone Number <span className="text-red-500">*</span></label>
+                              <div className="flex">
+                                <select className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-r-0 border-gray-200 dark:border-gray-700 rounded-l-lg text-sm focus:outline-none">
+                                  {COUNTRIES.map(c => <option key={c.code} value={c.dialCode}>{c.flag} {c.dialCode}</option>)}
+                                </select>
+                                <input 
+                                  type="text" 
+                                  name="phone"
+                                  value={companyData.phone}
+                                  onChange={handleCompanyChange}
+                                  className="flex-1 px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-r-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </section>
 
                       <hr className="border-gray-50" />
 
-                      {/* Basic Information */}
+                      {/* Business Information */}
                       <section>
-                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-1">Basic Information</h3>
-                        <p className="text-xs text-gray-400 mb-6">Your organization's core details</p>
+                        <h3 className="text-sm font-bold text-gray-800 dark:text-white mb-6">Business Information</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Organization Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              name="name"
-                              value={companyData.name}
-                              onChange={handleCompanyChange}
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Owner Name <span className="text-red-500">*</span></label>
-                            <input 
-                              type="text" 
-                              name="owner"
-                              value={companyData.owner}
-                              onChange={handleCompanyChange}
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Email Address <span className="text-red-500">*</span></label>
-                            <input 
-                              type="email" 
-                              name="email"
-                              value={companyData.email}
-                              onChange={handleCompanyChange}
-                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Phone Number <span className="text-red-500">*</span></label>
-                            <div className="flex gap-2">
-                              <div className="relative w-28">
-                                <select 
-                                  name="countryCode"
-                                  value={companyData.countryCode}
-                                  onChange={handleCompanyChange}
-                                  className="w-full appearance-none px-3 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none pr-8 cursor-pointer"
-                                >
-                                  {COUNTRIES.map(c => (
-                                    <option key={c.code} value={c.dialCode}>
-                                      {c.flag} {c.code} {c.dialCode}
-                                    </option>
-                                  ))}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={14} />
-                              </div>
-                              <input 
-                                type="tel" 
-                                name="phone"
-                                value={companyData.phone}
-                                onChange={handleCompanyChange}
-                                className="flex-1 px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Industry <span className="text-red-500">*</span></label>
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Industry</label>
                             <div className="relative">
                               <select 
                                 name="industry"
@@ -1123,19 +949,16 @@ export default function SettingsView() {
                         <p className="text-xs text-gray-400 mb-6">You must select an existing admin to transfer ownership.</p>
                         <div className="flex gap-4 items-end max-w-2xl">
                           <div className="flex-1 space-y-2">
-                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Owner</label>
-                            <div className="relative">
-                              <select className="w-full appearance-none px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
-                                <option>Select</option>
-                                <option>Steven Osborne</option>
-                                <option>Jenny Ellis</option>
-                              </select>
-                              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
-                            </div>
+                            <label className="text-xs font-bold text-gray-700 dark:text-gray-300">Owner Name</label>
+                            <input 
+                              type="text" 
+                              name="owner_name"
+                              value={companyData.owner_name}
+                              onChange={handleCompanyChange}
+                              placeholder="Enter owner name"
+                              className="w-full px-4 py-2.5 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            />
                           </div>
-                          <button className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-lg hover:bg-black transition-colors">
-                            Update
-                          </button>
                         </div>
                       </section>
 
@@ -1148,7 +971,7 @@ export default function SettingsView() {
                           Cancel
                         </button>
                         <button 
-                          onClick={handleSave}
+                          onClick={handleSaveCompany}
                           disabled={isSaving}
                           className="px-6 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-70"
                         >
@@ -1163,80 +986,95 @@ export default function SettingsView() {
                           <h3 className="text-sm font-bold text-gray-800 dark:text-white">Departments</h3>
                           <p className="text-xs text-gray-400">Manage your organization's departments</p>
                         </div>
-                        <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                          Add Department
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={fetchDepartments}
+                            className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Refresh"
+                          >
+                            <Loader2 size={16} className={isLoadingDepartments ? 'animate-spin' : ''} />
+                          </button>
+                          <button 
+                            onClick={() => {
+                              console.log('Opening Dept Modal');
+                              setIsDeptModalOpen(true);
+                            }}
+                            className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 active:scale-95"
+                          >
+                            Add Department
+                          </button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {departments.map((dept) => (
+                        {isLoadingDepartments ? (
+                          <div className="col-span-full py-10 text-center text-gray-400">Loading departments...</div>
+                        ) : departments.length > 0 ? departments.map((dept) => (
                           <div key={dept.id} className="p-5 bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 group hover:border-blue-200 transition-all">
                             <div className="flex items-center justify-between mb-4">
                               <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
                                 <Briefcase size={20} />
                               </div>
                               <button 
-                                onClick={() => setDepartments(departments.filter(d => d.id !== dept.id))}
+                                onClick={() => handleDeleteDepartment(dept.id)}
                                 className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Trash2 size={16} />
                               </button>
                             </div>
                             <h4 className="text-sm font-bold text-gray-800 dark:text-white mb-1">{dept.name}</h4>
-                            <div className="space-y-2">
+                            <div className="space-y-2 mb-4">
                               <div className="flex items-center justify-between text-[10px]">
                                 <span className="text-gray-400 uppercase tracking-wider font-bold">Head</span>
                                 <span className="text-gray-700 dark:text-gray-300 font-medium">{dept.head}</span>
                               </div>
                               <div className="flex items-center justify-between text-[10px]">
                                 <span className="text-gray-400 uppercase tracking-wider font-bold">Members</span>
-                                <span className="text-gray-700 dark:text-gray-300 font-medium">{dept.members}</span>
+                                <span className="text-gray-700 dark:text-gray-300 font-medium">{dept.members_count}</span>
                               </div>
-                              <div className="flex items-center justify-between text-[10px]">
-                                <span className="text-gray-400 uppercase tracking-wider font-bold">Budget</span>
-                                <span className="text-emerald-600 font-bold">{dept.budget}</span>
+                            </div>
+
+                            <div className="pt-3 border-t border-gray-50 dark:border-gray-800">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Designations</span>
+                                <button 
+                                  onClick={() => {
+                                    setSelectedDeptForDesig(dept);
+                                    setIsDesigModalOpen(true);
+                                  }}
+                                  className="text-[10px] font-bold text-blue-600 hover:underline"
+                                >
+                                  + Add Role
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(designations || []).filter(d => d.department_id === dept.id || d.department_name === dept.name).length > 0 ? (
+                                  (designations || []).filter(d => d.department_id === dept.id || d.department_name === dept.name).map(desig => (
+                                    <div key={desig.id} className="group/desig relative">
+                                      <span className="px-2 py-0.5 bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-[9px] font-bold rounded-md border border-gray-100 dark:border-gray-700">
+                                        {desig.name}
+                                      </span>
+                                      <button 
+                                        onClick={() => handleDeleteDesignation(desig.id)}
+                                        className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/desig:opacity-100 transition-opacity text-[8px]"
+                                      >
+                                        ×
+                                      </button>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <span className="text-[9px] text-gray-400 italic">No roles defined</span>
+                                )}
                               </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : activeSubTab === 'locations' ? (
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-bold text-gray-800 dark:text-white">Locations</h3>
-                          <p className="text-xs text-gray-400">Manage your office locations and remote hubs</p>
-                        </div>
-                        <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
-                          Add Location
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        {locations.map((loc) => (
-                          <div key={loc.id} className="p-4 bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between group hover:border-blue-200 transition-all">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-white dark:bg-black rounded-lg flex items-center justify-center text-gray-400 border border-gray-100 dark:border-gray-800">
-                                <Globe size={20} />
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-gray-800 dark:text-white">{loc.name}</p>
-                                <p className="text-xs text-gray-400">{loc.address} • {loc.type}</p>
-                              </div>
+                        )) : (
+                          <div className="col-span-full py-20 text-center">
+                            <div className="w-16 h-16 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                              <Briefcase size={32} />
                             </div>
-                            <div className="flex items-center gap-6">
-                              <div className="text-right">
-                                <p className="text-xs font-bold text-gray-700 dark:text-gray-300">{loc.employees}</p>
-                                <p className="text-[10px] text-gray-400 uppercase tracking-wider">Employees</p>
-                              </div>
-                              <button 
-                                onClick={() => setLocations(locations.filter(l => l.id !== loc.id))}
-                                className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
+                            <p className="text-gray-400 text-sm italic">No departments found. Add one to get started!</p>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   ) : activeSubTab === 'employee-type' ? (
@@ -1246,15 +1084,20 @@ export default function SettingsView() {
                           <h3 className="text-sm font-bold text-gray-800 dark:text-white">Employee Types</h3>
                           <p className="text-xs text-gray-400">Define employment categories for your team</p>
                         </div>
-                        <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
+                        <button 
+                          onClick={() => setIsTypeModalOpen(true)}
+                          className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 active:scale-95"
+                        >
                           Add Type
                         </button>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {employeeTypes.map((item) => (
+                        {isLoadingEmployeeTypes ? (
+                          <div className="col-span-full py-10 text-center text-gray-400">Loading types...</div>
+                        ) : employeeTypes.map((item) => (
                           <div key={item.id} className="p-4 bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 flex items-center justify-between group hover:border-blue-200 transition-all">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 ${item.color} rounded-lg flex items-center justify-center`}>
+                              <div className={`w-8 h-8 ${item.color || 'bg-gray-100 text-gray-600'} rounded-lg flex items-center justify-center`}>
                                 <Users size={16} />
                               </div>
                               <span className="text-sm font-bold text-gray-700 dark:text-gray-300">{item.type}</span>
@@ -1262,7 +1105,7 @@ export default function SettingsView() {
                             <div className="flex items-center gap-4">
                               <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{item.count} members</span>
                               <button 
-                                onClick={() => setEmployeeTypes(employeeTypes.filter(e => e.id !== item.id))}
+                                onClick={() => handleDeleteEmployeeType(item.id)}
                                 className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Trash2 size={16} />
@@ -1271,141 +1114,6 @@ export default function SettingsView() {
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ) : activeSubTab === 'holidays' ? (
-                    <div className="space-y-8">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                            <span className="p-2 bg-blue-500/10 rounded-lg text-blue-600">
-                              <Calendar size={20} />
-                            </span>
-                            Holiday Types
-                          </h3>
-                          <p className="text-sm text-gray-400 mt-1">Define categories for employee holiday time off</p>
-                        </div>
-                        <button 
-                          onClick={() => setIsHolidayModalOpen(true)}
-                          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-black rounded-xl transition-all shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-2"
-                        >
-                          Add New Type
-                        </button>
-                      </div>
-
-                      <div className="bg-white dark:bg-[#0A0A0B]/80 backdrop-blur-xl border border-gray-100 dark:border-white/5 rounded-[32px] overflow-hidden shadow-2xl shadow-black/5">
-                        <table className="w-full text-left text-sm border-collapse">
-                          <thead>
-                            <tr className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-50 dark:border-white/5">
-                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Holiday Name</th>
-                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Created Date</th>
-                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status</th>
-                              <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-right">Action</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50 dark:divide-white/5">
-                            {isLoadingHolidays ? (
-                              <tr>
-                                <td colSpan={4} className="px-8 py-16 text-center text-gray-400">
-                                  <Loader2 size={32} className="animate-spin text-blue-500 mx-auto mb-4" />
-                                  <p className="font-bold uppercase tracking-widest text-[10px]">Fetching Types...</p>
-                                </td>
-                              </tr>
-                            ) : holidays.length > 0 ? holidays.map((holiday) => (
-                              <tr key={holiday.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.01] transition-all duration-300 group">
-                                <td className="px-8 py-6">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
-                                      <Zap size={18} />
-                                    </div>
-                                    <p className="font-bold text-gray-800 dark:text-white tracking-tight">{holiday.name}</p>
-                                  </div>
-                                </td>
-                                <td className="px-8 py-6 text-gray-500 dark:text-gray-400 font-medium">
-                                  {new Date(holiday.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                </td>
-                                <td className="px-8 py-6">
-                                  <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100 dark:border-emerald-500/20">
-                                    {holiday.status}
-                                  </span>
-                                </td>
-                                <td className="px-8 py-6 text-right">
-                                  <button 
-                                    onClick={() => handleDeleteHoliday(holiday.id)}
-                                    className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                                  >
-                                    <Trash2 size={18} />
-                                  </button>
-                                </td>
-                              </tr>
-                            )) : (
-                              <tr>
-                                <td colSpan={4} className="px-8 py-20 text-center text-gray-400 italic">No holiday types found.</td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* Add Holiday Modal */}
-                      {isHolidayModalOpen && (
-                        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-                          <div className="bg-white dark:bg-[#0A0A0B] rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden border border-white/10 relative">
-                            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none" />
-                            
-                            <div className="p-8 pb-4 flex justify-between items-center relative">
-                              <div>
-                                <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">Create Holiday Type</h3>
-                                <p className="text-sm text-gray-400 mt-1">This will be available for all employees</p>
-                              </div>
-                              <button 
-                                onClick={() => setIsHolidayModalOpen(false)} 
-                                className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition-all"
-                              >
-                                <X size={20} />
-                              </button>
-                            </div>
-
-                            <div className="p-8 pt-6 space-y-8 relative">
-                              <div className="space-y-3">
-                                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Type Name</label>
-                                <div className="relative group">
-                                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors">
-                                    <Target size={20} />
-                                  </div>
-                                  <input 
-                                    type="text" 
-                                    placeholder="e.g. Festival Leave"
-                                    value={newHoliday.name}
-                                    onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
-                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-black transition-all dark:text-white placeholder:text-gray-500"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="flex gap-4 pt-2">
-                                <button 
-                                  onClick={() => setIsHolidayModalOpen(false)}
-                                  className="flex-1 px-4 py-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-sm font-black rounded-2xl hover:bg-gray-200 dark:hover:bg-white/10 transition-all"
-                                >
-                                  Nevermind
-                                </button>
-                                <button 
-                                  onClick={handleAddHoliday}
-                                  disabled={isSaving}
-                                  className="flex-[2] px-4 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-black rounded-2xl hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2"
-                                >
-                                  {isSaving ? (
-                                    <>
-                                      <Loader2 size={18} className="animate-spin" />
-                                      Creating...
-                                    </>
-                                  ) : 'Create Now'}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ) : (
                     <div className="p-20 text-center">
@@ -1424,7 +1132,7 @@ export default function SettingsView() {
               <>
                 {/* Work Sub Tabs */}
                 <div className="flex items-center gap-8 px-8 border-b border-gray-100 dark:border-gray-800">
-                  {['Leave Types', 'Shift', 'Working Hours', 'Tracker Settings', 'Productivity Ratings'].map((tab) => {
+                  {['Leave Types', 'Shift', 'Working Hours', 'Tracker Settings'].map((tab) => {
                     const id = tab.toLowerCase().replace(' ', '-');
                     return (
                       <button 
@@ -1445,7 +1153,10 @@ export default function SettingsView() {
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold text-gray-800 dark:text-white">Leave Type</h3>
                         <div className="flex gap-3">
-                          <button className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-black transition-colors">
+                          <button 
+                            onClick={handleSaveWorkSettings}
+                            className="flex items-center gap-2 px-4 py-2 bg-black text-white text-xs font-bold rounded-lg hover:bg-black transition-colors"
+                          >
                             <Wand2 size={14} />
                             Leave type
                           </button>
@@ -1550,7 +1261,10 @@ export default function SettingsView() {
                           <h3 className="text-lg font-bold text-gray-800 dark:text-white">Work Shifts</h3>
                           <p className="text-xs text-gray-400">Manage your organization's work shifts and timings</p>
                         </div>
-                        <button className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors">
+                        <button 
+                          onClick={() => setIsShiftModalOpen(true)}
+                          className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors"
+                        >
                           + Add Shift
                         </button>
                       </div>
@@ -1562,7 +1276,7 @@ export default function SettingsView() {
                                 <Clock size={20} />
                               </div>
                               <button 
-                                onClick={() => setShifts(shifts.filter(s => s.id !== shift.id))}
+                                onClick={() => handleDeleteShift(shift.id)}
                                 className="text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
                               >
                                 <Trash2 size={16} />
@@ -1577,6 +1291,57 @@ export default function SettingsView() {
                           </div>
                         ))}
                       </div>
+
+                      {/* Add Shift Modal */}
+                      {isShiftModalOpen && (
+                        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                              <h3 className="font-bold text-gray-800 dark:text-white">Add New Work Shift</h3>
+                              <button onClick={() => setIsShiftModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                <X size={20} />
+                              </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Shift Name</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. Night Shift"
+                                  value={newShift.name}
+                                  onChange={(e) => setNewShift({...newShift, name: e.target.value})}
+                                  className="w-full px-4 py-3 bg-gray-50 dark:bg-black border border-gray-100 dark:border-gray-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Time Range</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="e.g. 10:00 PM - 06:00 AM"
+                                  value={newShift.time}
+                                  onChange={(e) => setNewShift({...newShift, time: e.target.value})}
+                                  className="w-full px-4 py-3 bg-gray-50 dark:bg-black border border-gray-100 dark:border-gray-800 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                />
+                              </div>
+                              <div className="flex gap-3 pt-2">
+                                <button 
+                                  onClick={() => setIsShiftModalOpen(false)}
+                                  className="flex-1 px-4 py-3 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                                <button 
+                                  onClick={handleAddShift}
+                                  disabled={isSaving}
+                                  className="flex-1 px-4 py-3 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50"
+                                >
+                                  {isSaving ? 'Creating...' : 'Create Shift'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ) : activeSubTab === 'working-hours' ? (
                     <div className="space-y-6">
@@ -1586,7 +1351,7 @@ export default function SettingsView() {
                           <p className="text-xs text-gray-400">Define standard working hours for each day of the week</p>
                         </div>
                         <button 
-                          onClick={handleSave}
+                          onClick={handleSaveWorkSettings}
                           className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-colors"
                         >
                           Save Changes
@@ -1816,79 +1581,12 @@ export default function SettingsView() {
                           Cancel
                         </button>
                           <button 
-                            onClick={handleSave}
+                            onClick={handleSaveWorkSettings}
                             className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-colors"
                           >
                             Save Changes
                           </button>
                         </div>
-                      </div>
-                    </div>
-                  ) : activeSubTab === 'productivity-ratings' ? (
-                    <div className="space-y-6">
-                      <div className="bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden shadow-sm">
-                        <table className="w-full text-left text-sm">
-                          <thead className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800">
-                            <tr>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">App/Website</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Total Time (H)</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Category</th>
-                              <th className="px-6 py-4 font-bold text-gray-700 dark:text-gray-300">Label</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-50">
-                            {[
-                              { name: 'Figma', domain: 'figma.com', time: '09h 45m', category: 'Design' },
-                              { name: 'Google Chrome', domain: 'google.com', time: '09h 20m', category: 'Browser' },
-                              { name: 'Adobe Illustrator', domain: 'adobe.com', time: '09h 30m', category: 'Design' },
-                              { name: 'Slack', domain: 'slack.com', time: '09h 00m', category: 'Design' },
-                              { name: 'Google Docs', domain: 'docs.google.com', time: '09h 25m', category: 'Design' }
-                            ].map((item) => (
-                              <tr key={item.name} className="hover:bg-white dark:bg-black transition-colors group">
-                                <td className="px-6 py-4">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-900 flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-800">
-                                      <img 
-                                        src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=64`} 
-                                        alt={item.name}
-                                        className="w-6 h-6 object-contain"
-                                        referrerPolicy="no-referrer"
-                                      />
-                                    </div>
-                                    <span className="font-bold text-gray-800 dark:text-white">{item.name}</span>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4 text-gray-400 font-medium">{item.time}</td>
-                                <td className="px-6 py-4">
-                                  <div className="relative w-32">
-                                    <select className="w-full appearance-none px-4 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer pr-8">
-                                      <option>{item.category}</option>
-                                      <option>Development</option>
-                                      <option>Communication</option>
-                                      <option>Entertainment</option>
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                      <ChevronDown size={14} />
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                  <div className="relative w-32">
-                                    <select className="w-full appearance-none px-4 py-2 bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer pr-8">
-                                      <option>Select</option>
-                                      <option>Work</option>
-                                      <option>Personal</option>
-                                      <option>Other</option>
-                                    </select>
-                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                                      <ChevronDown size={14} />
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
                       </div>
                     </div>
                   ) : (
@@ -2041,6 +1739,156 @@ export default function SettingsView() {
           <div>
             <p className="text-sm font-bold">Changes Saved Successfully</p>
             <p className="text-xs opacity-90">Your profile has been updated.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modals */}
+
+      {isDeptModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#0A0A0B] rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden border border-white/10 relative">
+            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none" />
+            <div className="p-8 pb-4 flex justify-between items-center relative">
+              <div>
+                <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">Add Department</h3>
+                <p className="text-sm text-gray-400 mt-1">Define a new organizational unit</p>
+              </div>
+              <button onClick={() => setIsDeptModalOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-8 pt-6 space-y-6 relative">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Department Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Engineering"
+                  value={newDept.name}
+                  onChange={(e) => setNewDept({ ...newDept, name: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-black transition-all dark:text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Department Head</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. John Doe"
+                  value={newDept.head}
+                  onChange={(e) => setNewDept({ ...newDept, head: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-black transition-all dark:text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Budget</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. $50,000"
+                  value={newDept.budget}
+                  onChange={(e) => setNewDept({ ...newDept, budget: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-black transition-all dark:text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button onClick={() => setIsDeptModalOpen(false)} className="flex-1 px-4 py-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-sm font-black rounded-2xl hover:bg-gray-200 transition-all">Cancel</button>
+                <button onClick={handleAddDepartment} disabled={isSaving} className="flex-[2] px-4 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-black rounded-2xl hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2">
+                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : 'Create Department'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {isTypeModalOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-[#0A0A0B] rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden border border-white/10 relative">
+            <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-blue-600/10 to-transparent pointer-events-none" />
+            <div className="p-8 pb-4 flex justify-between items-center relative">
+              <div>
+                <h3 className="text-2xl font-black text-gray-800 dark:text-white tracking-tight">Add Employee Type</h3>
+                <p className="text-sm text-gray-400 mt-1">Define a new category of employment</p>
+              </div>
+              <button onClick={() => setIsTypeModalOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-red-500/20 transition-all">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-8 pt-6 space-y-6 relative">
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Type Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Full-Time"
+                  value={newType.type}
+                  onChange={(e) => setNewType({ ...newType, type: e.target.value })}
+                  className="w-full px-5 py-4 bg-gray-50 dark:bg-white/5 border border-transparent dark:border-white/5 rounded-2xl text-base outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white dark:focus:bg-black transition-all dark:text-white placeholder:text-gray-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] ml-1">Theme Color</label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[
+                    'bg-blue-500/10 text-blue-600',
+                    'bg-emerald-500/10 text-emerald-600',
+                    'bg-purple-500/10 text-purple-600',
+                    'bg-amber-500/10 text-amber-600',
+                    'bg-rose-500/10 text-rose-600'
+                  ].map(c => (
+                    <button 
+                      key={c}
+                      onClick={() => setNewType({ ...newType, color: c })}
+                      className={`w-full aspect-square rounded-xl ${c.split(' ')[0]} border-2 transition-all ${newType.color === c ? 'border-blue-500 scale-110' : 'border-transparent'}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button onClick={() => setIsTypeModalOpen(false)} className="flex-1 px-4 py-4 bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 text-sm font-black rounded-2xl hover:bg-gray-200 transition-all">Cancel</button>
+                <button onClick={handleAddEmployeeType} disabled={isSaving} className="flex-[2] px-4 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-black rounded-2xl hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2">
+                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : 'Create Type'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Designation Modal */}
+      {isDesigModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsDesigModalOpen(false)}></div>
+          <div className="relative bg-white dark:bg-black w-full max-w-md p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-2xl">
+            <h3 className="text-xl font-black text-gray-800 dark:text-white mb-1">Add Role</h3>
+            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mb-6">Department: {selectedDeptForDesig?.name}</p>
+            
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500">Role Name</label>
+                <input 
+                  type="text" 
+                  value={newDesigName}
+                  onChange={(e) => setNewDesigName(e.target.value)}
+                  placeholder="e.g. Senior Developer"
+                  className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl text-sm outline-none focus:border-blue-600 dark:text-white"
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button 
+                  onClick={() => setIsDesigModalOpen(false)}
+                  className="flex-1 py-3 bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-400 font-bold rounded-xl text-sm"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAddDesignation}
+                  className="flex-[2] py-3 bg-blue-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-blue-500/20"
+                >
+                  Add Role
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

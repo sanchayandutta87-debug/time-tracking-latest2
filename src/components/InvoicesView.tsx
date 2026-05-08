@@ -101,7 +101,7 @@ export default function InvoicesView() {
       </div>
 
       {/* Invoices Table */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
+      <div className="bg-white dark:bg-black rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden min-h-[400px]">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 gap-3">
             <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />

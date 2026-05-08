@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Plus, ChevronRight, ArrowUpDown, FileText, Check, X, Loader2, Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useAppContext } from '../context/AppContext';
 import ApplyLeaveModal from './ApplyLeaveModal';
 
 interface LeaveRequest {
@@ -18,6 +19,7 @@ interface LeaveRequest {
 }
 
 export default function LeaveView() {
+  const { showToast } = useAppContext();
   const { currentUser } = useAuth();
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -117,8 +119,9 @@ export default function LeaveView() {
       }
 
       fetchLeaves();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating leave status:', error);
+      showToast('Error updating status: ' + error.message, 'error');
     }
   };
 
@@ -128,23 +131,15 @@ export default function LeaveView() {
   );
 
   return (
-    <div className="p-8 bg-gray-50 dark:bg-transparent min-h-full">
+    <div className="p-8 bg-transparent min-h-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Leave</h1>
-        <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-slate-500">
-          <span className="hover:text-blue-600 cursor-pointer">Home</span>
-          <ChevronRight size={14} />
-          <span className="text-gray-600 dark:text-gray-300">Leave</span>
-        </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-8 border-b border-gray-200 dark:border-slate-700 mb-8">
-        {(currentUser?.role === 'management' 
-          ? ['Requested', 'Approved', 'Rejected'] 
-          : ['Requested']
-        ).map(tab => (
+      <div className="flex items-center gap-8 border-b border-gray-200 dark:border-gray-800 mb-8">
+        {['Requested', 'Approved', 'Rejected'].map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -161,7 +156,7 @@ export default function LeaveView() {
 
       {/* Filters & Actions */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-        <div className="bg-white dark:bg-slate-800 flex items-center gap-2 border border-gray-100 dark:border-slate-700 rounded-lg px-3 py-2.5 w-full md:w-80 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+        <div className="bg-white dark:bg-black flex items-center gap-2 border border-gray-100 dark:border-gray-800 rounded-lg px-3 py-2.5 w-full md:w-80 shadow-sm focus-within:ring-2 focus-within:ring-blue-500 transition-all">
           <Search className="text-gray-400" size={18} />
           <input 
             type="text" 
@@ -173,7 +168,7 @@ export default function LeaveView() {
         </div>
         
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <button className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-700 dark:text-slate-300 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 flex items-center gap-2 transition-colors">
+          <button className="bg-white dark:bg-black border border-gray-100 dark:border-gray-800 px-4 py-2.5 rounded-lg text-sm font-bold text-gray-700 dark:text-gray-300 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-900 flex items-center gap-2 transition-colors">
             <ArrowUpDown size={16} /> Sort By : Newest
           </button>
           
@@ -187,7 +182,7 @@ export default function LeaveView() {
       </div>
 
       {/* Premium Table Container */}
-      <div className="bg-white dark:bg-[#0A0A0B]/80 backdrop-blur-xl rounded-[32px] border border-gray-100 dark:border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
+      <div className="bg-white dark:bg-black backdrop-blur-xl rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-4">
             <Loader2 size={40} className="text-blue-500 animate-spin" />
@@ -197,7 +192,7 @@ export default function LeaveView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-50 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                <tr className="border-b border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-black">
                   <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Employee</th>
                   <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Leave Type</th>
                   <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Schedule</th>
@@ -206,7 +201,7 @@ export default function LeaveView() {
                   <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-white/5">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {filteredLeaves.length > 0 ? filteredLeaves.map((row) => (
                   <tr key={row.id} className="hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.02] transition-all duration-300 group">
                     <td className="px-8 py-6">
@@ -218,7 +213,7 @@ export default function LeaveView() {
                             className="w-12 h-12 rounded-2xl object-cover ring-2 ring-gray-100 dark:ring-white/5 group-hover:scale-105 transition-transform duration-300"
                             referrerPolicy="no-referrer"
                           />
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-[#0A0A0B] rounded-full shadow-sm"></div>
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white dark:border-black rounded-full shadow-sm"></div>
                         </div>
                         <div>
                           <p className="text-sm font-black text-gray-800 dark:text-white tracking-tight">{row.name}</p>
@@ -227,7 +222,7 @@ export default function LeaveView() {
                       </div>
                     </td>
                     <td className="px-8 py-6">
-                      <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-500/20">
+                      <span className="inline-block whitespace-nowrap px-4 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100 dark:border-blue-500/20 shadow-sm">
                         {row.type}
                       </span>
                     </td>
@@ -255,27 +250,21 @@ export default function LeaveView() {
                         {row.status}
                       </span>
                     </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <button 
-                          title={row.reason}
-                          className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
-                        >
-                          <FileText size={18} />
-                        </button>
-                        {row.status === 'Requested' && currentUser?.role === 'management' && (
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        {row.status === 'Requested' && (currentUser?.role?.toLowerCase() === 'administrator' || currentUser?.role?.toLowerCase() === 'management') && (
                           <div className="flex items-center gap-2 border-l border-gray-100 dark:border-white/5 pl-3">
                             <button 
                               onClick={() => handleUpdateStatus(row.id, 'Approved')}
-                              className="p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm active:scale-90"
+                              className="px-4 py-2 rounded-xl bg-emerald-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
                             >
-                              <Check size={18} />
+                              Approve
                             </button>
                             <button 
                               onClick={() => handleUpdateStatus(row.id, 'Rejected')}
-                              className="p-2.5 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-90"
+                              className="px-4 py-2 rounded-xl bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/20 active:scale-95"
                             >
-                              <X size={18} />
+                              Reject
                             </button>
                           </div>
                         )}

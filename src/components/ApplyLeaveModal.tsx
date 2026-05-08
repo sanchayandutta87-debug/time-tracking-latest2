@@ -10,7 +10,10 @@ interface ApplyLeaveModalProps {
   onSuccess: () => void;
 }
 
+import { useAppContext } from '../context/AppContext';
+
 export default function ApplyLeaveModal({ isOpen, onClose, onSuccess }: ApplyLeaveModalProps) {
+  const { showToast } = useAppContext();
   const { currentUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
@@ -61,7 +64,7 @@ export default function ApplyLeaveModal({ isOpen, onClose, onSuccess }: ApplyLea
       onClose();
     } catch (error: any) {
       console.error('Error applying for leave:', error);
-      alert('Error applying for leave: ' + error.message);
+      showToast('Error applying for leave: ' + error.message, 'error');
     } finally {
       setIsLoading(false);
     }

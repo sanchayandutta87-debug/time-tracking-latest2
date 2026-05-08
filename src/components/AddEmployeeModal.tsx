@@ -46,6 +46,39 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
     joinDate: new Date().toISOString().split('T')[0]
   });
 
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [designations, setDesignations] = useState<any[]>([]);
+  const [filteredDesignations, setFilteredDesignations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const { data: deptData } = await supabase.from('departments').select('*').order('name');
+        setDepartments(deptData || []);
+
+        // We'll also fetch all designations if the table exists
+        const { data: desigData } = await supabase.from('designations').select('*').order('name');
+        setDesignations(desigData || []);
+      } catch (err) {
+        console.error('Error fetching modal data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (isOpen) fetchData();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (formData.department) {
+      const filtered = designations.filter(d => d.department_name === formData.department || d.department_id === departments.find(dept => dept.name === formData.department)?.id);
+      setFilteredDesignations(filtered);
+    } else {
+      setFilteredDesignations([]);
+    }
+  }, [formData.department, designations, departments]);
+
   useEffect(() => {
     if (employeeToEdit) {
       setFormData(employeeToEdit);
@@ -160,7 +193,19 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
                 <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Designation / Title</label>
                 <div className="relative">
                   <Star size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input required type="text" className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all font-bold ${darkMode ? 'bg-black border-gray-700 text-white focus:border-purple-600' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white focus:border-purple-600'}`} placeholder="e.g. Senior Creative Lead" value={formData.designation} onChange={(e) => setFormData({...formData, designation: e.target.value})} />
+                  <select 
+                    required 
+                    className={`w-full pl-12 pr-10 py-4 rounded-2xl border-2 outline-none transition-all font-bold appearance-none ${darkMode ? 'bg-black border-gray-700 text-white focus:border-purple-600' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white focus:border-purple-600'}`}
+                    value={formData.designation} 
+                    onChange={(e) => setFormData({...formData, designation: e.target.value})}
+                  >
+                    <option value="">Select Designation</option>
+                    {filteredDesignations.length > 0 ? (
+                      filteredDesignations.map(d => <option key={d.id} value={d.name}>{d.name}</option>)
+                    ) : (
+                      <option value="" disabled>{formData.department ? 'No roles found for this dept' : 'Select a department first'}</option>
+                    )}
+                  </select>
                 </div>
               </div>
             </div>
@@ -170,7 +215,17 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
                 <label className={`text-[10px] font-black uppercase tracking-widest ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>Department</label>
                 <div className="relative">
                   <Building2 size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input required type="text" className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 outline-none transition-all font-bold ${darkMode ? 'bg-black border-gray-700 text-white focus:border-purple-600' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white focus:border-purple-600'}`} placeholder="e.g. Engineering" value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})} />
+                  <select 
+                    required 
+                    className={`w-full pl-12 pr-10 py-4 rounded-2xl border-2 outline-none transition-all font-bold appearance-none ${darkMode ? 'bg-black border-gray-700 text-white focus:border-purple-600' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800 text-gray-900 dark:text-white focus:border-purple-600'}`}
+                    value={formData.department} 
+                    onChange={(e) => setFormData({...formData, department: e.target.value, designation: ''})}
+                  >
+                    <option value="">Select Department</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="space-y-2">

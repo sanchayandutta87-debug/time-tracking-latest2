@@ -26,15 +26,15 @@ export default function InvoicesTable({ invoices = [], onRowClick }: { invoices:
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse">
-        <thead className="bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
+        <thead className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800">
           <tr>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Invoice</th>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Customer</th>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Created On</th>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Total</th>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Amount Due</th>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Due Date</th>
-            <th className="p-4 font-semibold text-gray-700 dark:text-slate-300 text-sm">Status</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Invoice</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Customer</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Created On</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Total</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Amount Due</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Due Date</th>
+            <th className="p-4 font-semibold text-gray-700 dark:text-gray-300 text-sm">Status</th>
             <th className="p-4"></th>
           </tr>
         </thead>
@@ -43,22 +43,22 @@ export default function InvoicesTable({ invoices = [], onRowClick }: { invoices:
             <tr 
               key={invoice.id} 
               onClick={() => onRowClick(invoice)}
-              className="border-b border-gray-50 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group cursor-pointer"
+              className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group cursor-pointer"
             >
-              <td className="p-4 text-gray-600 dark:text-slate-400 text-sm font-medium">{invoice.invoice_number}</td>
+              <td className="p-4 text-gray-600 dark:text-gray-400 text-sm font-medium">{invoice.invoice_number}</td>
               <td className="p-4">
                 <div className="flex items-center gap-3">
-                  <img src={invoice.customer_avatar} alt={invoice.customer_name} className="w-9 h-9 rounded-full border border-gray-100 dark:border-slate-600" referrerPolicy="no-referrer" />
+                  <img src={invoice.customer_avatar} alt={invoice.customer_name} className="w-9 h-9 rounded-full border border-gray-100 dark:border-gray-800" referrerPolicy="no-referrer" />
                   <div>
                     <p className="font-bold text-gray-800 dark:text-white text-sm">{invoice.customer_name}</p>
-                    <p className="text-xs text-gray-400 dark:text-slate-500">{invoice.customer_email}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{invoice.customer_email}</p>
                   </div>
                 </div>
               </td>
-              <td className="p-4 text-gray-500 dark:text-slate-400 text-sm">{new Date(invoice.created_at).toLocaleDateString()}</td>
-              <td className="p-4 text-gray-600 dark:text-slate-300 text-sm font-medium">${invoice.total_amount.toLocaleString()}</td>
-              <td className="p-4 text-gray-600 dark:text-slate-300 text-sm">${invoice.amount_due.toLocaleString()}</td>
-              <td className="p-4 text-gray-500 dark:text-slate-400 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
+              <td className="p-4 text-gray-500 dark:text-gray-400 text-sm">{new Date(invoice.created_at).toLocaleDateString()}</td>
+              <td className="p-4 text-gray-600 dark:text-gray-300 text-sm font-medium">${invoice.total_amount.toLocaleString()}</td>
+              <td className="p-4 text-gray-600 dark:text-gray-300 text-sm">${invoice.amount_due.toLocaleString()}</td>
+              <td className="p-4 text-gray-500 dark:text-gray-400 text-sm">{new Date(invoice.due_date).toLocaleDateString()}</td>
               <td className="p-4">
                 <span className={`px-3 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider ${
                   invoice.status === 'Paid' ? 'bg-green-50 dark:bg-green-900/20 text-green-500' : 
@@ -70,8 +70,8 @@ export default function InvoicesTable({ invoices = [], onRowClick }: { invoices:
                 </span>
               </td>
               <td className="p-4 text-right">
-                <button className="p-1 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full transition-colors">
-                  <MoreVertical size={16} className="text-gray-400 dark:text-slate-500" />
+                <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                  <MoreVertical size={16} className="text-gray-400 dark:text-gray-500" />
                 </button>
               </td>
             </tr>

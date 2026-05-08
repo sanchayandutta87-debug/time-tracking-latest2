@@ -153,7 +153,7 @@ export default function TimesheetView() {
 
     if (!record.checkIn) {
       return (
-        <div className="h-10 bg-gray-100/50 dark:bg-slate-900/40 rounded-xl w-full flex items-center justify-center border border-dashed border-gray-200 dark:border-slate-700/50">
+        <div className="h-10 bg-gray-100/50 dark:bg-black rounded-xl w-full flex items-center justify-center border border-dashed border-gray-200 dark:border-gray-800">
           <span className="text-[10px] font-bold text-gray-400 dark:text-slate-600 uppercase tracking-widest">No Activity</span>
         </div>
       );
@@ -166,11 +166,11 @@ export default function TimesheetView() {
     const width = Math.min(100 - startOffset, ((checkOutTime.getTime() - checkInTime.getTime()) / totalMs) * 100);
 
     return (
-      <div className="h-10 bg-gray-100/30 dark:bg-slate-900/40 rounded-xl w-full flex items-center relative overflow-hidden group/timeline border border-gray-100/50 dark:border-slate-800/50">
+      <div className="h-10 bg-gray-100/30 dark:bg-black rounded-xl w-full flex items-center relative overflow-hidden group/timeline border border-gray-100/50 dark:border-gray-800">
         {/* Hour Grid Lines */}
         <div className="absolute inset-0 flex justify-between px-0.5 pointer-events-none opacity-20">
           {Array.from({ length: 11 }).map((_, i) => (
-            <div key={i} className="w-[1px] h-full bg-gray-400 dark:bg-slate-600" />
+            <div key={i} className="w-[1px] h-full bg-gray-400 dark:bg-gray-800" />
           ))}
         </div>
 
@@ -204,7 +204,7 @@ export default function TimesheetView() {
   );
 
   return (
-    <div className="p-8 bg-gray-50 dark:bg-transparent min-h-full">
+    <div className="p-8 bg-transparent min-h-full">
       {/* Header */}
       <div className="flex justify-between items-end mb-10">
         <div>
@@ -216,7 +216,7 @@ export default function TimesheetView() {
           </div>
         </div>
         
-        <div className="flex items-center gap-3 bg-white dark:bg-slate-800 p-1.5 rounded-xl border border-gray-100 dark:border-slate-700 shadow-sm">
+        <div className="flex items-center gap-3 bg-white dark:bg-black p-1.5 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
            <button 
             onClick={() => setActiveTab('Day')}
             className={`px-5 py-2 text-xs font-bold rounded-lg transition-all active:scale-95 ${activeTab === 'Day' ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
@@ -241,7 +241,7 @@ export default function TimesheetView() {
           <input 
             type="text" 
             placeholder="Search team members..." 
-            className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all dark:text-white"
+            className="w-full pl-12 pr-4 py-3.5 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all dark:text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -250,7 +250,7 @@ export default function TimesheetView() {
         <div className="flex items-center gap-4 w-full lg:w-auto">
           <div 
             onClick={triggerDatePicker}
-            className="relative flex items-center gap-2 px-5 py-3.5 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl shadow-sm cursor-pointer hover:border-gray-200 dark:hover:border-slate-600 transition-all overflow-hidden active:scale-95"
+            className="relative flex items-center gap-2 px-5 py-3.5 bg-white dark:bg-black border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm cursor-pointer hover:border-gray-200 dark:hover:border-gray-700 transition-all overflow-hidden active:scale-95"
           >
              <Calendar className="text-blue-500 pointer-events-none" size={18} />
              <span className="text-sm font-bold text-gray-700 dark:text-slate-300 pointer-events-none select-none">
@@ -268,11 +268,11 @@ export default function TimesheetView() {
       </div>
 
       {/* Main Table Container */}
-      <div className="bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 overflow-hidden">
+      <div className="bg-white/70 dark:bg-black/40 backdrop-blur-xl rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1100px]">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-slate-700/50 bg-gray-50/30 dark:bg-slate-900/20">
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-black/20">
                 <th className="pl-8 pr-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">Member Info</th>
                 <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] w-32 text-center">Total {activeTab === 'Week' ? 'Week' : 'Day'}</th>
                 {activeTab === 'Day' ? (
@@ -325,7 +325,7 @@ export default function TimesheetView() {
                   </td>
                   <td className="px-6 py-8">
                     <div className="flex justify-center">
-                      <span className="w-24 text-center text-xs font-black text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-900/60 py-2 rounded-xl border border-gray-200/50 dark:border-slate-700/50 shadow-sm">
+                      <span className="w-24 text-center text-xs font-black text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-black py-2 rounded-xl border border-gray-200/50 dark:border-gray-800 shadow-sm">
                         {row.totalTime}
                       </span>
                     </div>
@@ -346,7 +346,7 @@ export default function TimesheetView() {
                           <div className="flex flex-col items-center gap-2">
                             {dayData ? (
                               <>
-                                <div className="w-1.5 h-12 bg-gray-100 dark:bg-slate-900/40 rounded-full relative overflow-hidden">
+                                <div className="w-1.5 h-12 bg-gray-100 dark:bg-black rounded-full relative overflow-hidden">
                                   <div 
                                     className="absolute bottom-0 left-0 w-full bg-emerald-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.3)]"
                                     style={{ height: `${Math.min(100, (dayData.totalMinutes / 480) * 100)}%` }}
@@ -357,7 +357,7 @@ export default function TimesheetView() {
                                 </span>
                               </>
                             ) : (
-                              <div className="w-1.5 h-12 bg-gray-100 dark:bg-slate-900/40 rounded-full opacity-20" />
+                              <div className="w-1.5 h-12 bg-gray-100 dark:bg-black rounded-full opacity-20" />
                             )}
                           </div>
                         </td>

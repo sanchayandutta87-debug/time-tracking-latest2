@@ -23,7 +23,7 @@ interface Team {
 }
 
 export default function TeamsView() {
-  const { darkMode } = useAppContext();
+  const { darkMode, showToast } = useAppContext();
   const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -153,7 +153,7 @@ export default function TeamsView() {
       fetchTeams();
     } catch (error) {
       console.error('Error saving team:', error);
-      alert('Error saving team: ' + (error as any).message);
+      showToast('Error saving team: ' + (error as any).message, 'error');
     }
   };
 
@@ -176,7 +176,7 @@ export default function TeamsView() {
 
       {/* Filters & Actions */}
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
-        <div className={`${darkMode ? 'bg-[#0A0A0B]/60 border-white/5' : 'bg-white border-gray-200'} flex items-center gap-2 border rounded-lg px-3 py-2.5 w-full lg:w-80 shadow-sm transition-all`}>
+        <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'} flex items-center gap-2 border rounded-lg px-3 py-2.5 w-full lg:w-80 shadow-sm transition-all`}>
           <Search className="text-gray-400" size={18} />
           <input 
             type="text" 
@@ -188,7 +188,7 @@ export default function TeamsView() {
         </div>
         
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <button className={`${darkMode ? 'bg-[#0A0A0B]/60 border-white/5 text-gray-300 hover:bg-white/5' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'} border px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-all`}>
+          <button className={`${darkMode ? 'bg-black border-gray-800 text-gray-300 hover:bg-gray-900' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'} border px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-all`}>
             <ArrowUpDown size={16} /> Sort By : Newest
           </button>
           
@@ -205,7 +205,7 @@ export default function TeamsView() {
       </div>
 
       {/* Table Container */}
-      <div className={`${darkMode ? 'bg-[#0A0A0B]/80 border-white/5' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden transition-all`}>
+      <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden transition-all`}>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Loader2 size={32} className="text-blue-600 animate-spin" />
@@ -215,7 +215,7 @@ export default function TeamsView() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className={`border-b ${darkMode ? 'border-white/5 bg-white/[0.02]' : 'border-gray-50 bg-gray-50/50'}`}>
+                <tr className={`border-b ${darkMode ? 'border-gray-800 bg-black' : 'border-gray-50 bg-gray-50/50'}`}>
                   <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>Team Name</th>
                   <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>Team Lead</th>
                   <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>Members</th>
@@ -226,12 +226,12 @@ export default function TeamsView() {
                   <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}></th>
                 </tr>
               </thead>
-              <tbody className={`divide-y ${darkMode ? 'divide-white/5' : 'divide-gray-50'}`}>
+              <tbody className={`divide-y ${darkMode ? 'divide-gray-800' : 'divide-gray-50'}`}>
                 {filteredTeams.length > 0 ? filteredTeams.map((team) => (
                   <tr key={team.id} className={`hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.02] transition-colors group`}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-white/5 text-blue-400' : team.color}`}>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${darkMode ? 'bg-gray-900 text-blue-400' : team.color}`}>
                           {team.shortName}
                         </div>
                         <span className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{team.name}</span>
@@ -242,7 +242,7 @@ export default function TeamsView() {
                         <img 
                           src={team.leadAvatar} 
                           alt={team.lead} 
-                          className={`w-8 h-8 rounded-full object-cover ${darkMode ? 'ring-1 ring-white/10' : ''}`}
+                          className={`w-8 h-8 rounded-full object-cover ${darkMode ? 'ring-1 ring-gray-800' : ''}`}
                           referrerPolicy="no-referrer"
                         />
                         <span className={`text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{team.lead}</span>
@@ -263,7 +263,7 @@ export default function TeamsView() {
                       <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{team.hours}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>{team.createdDate}</span>
+                      <span className={`text-sm font-medium ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>{team.createdDate}</span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${

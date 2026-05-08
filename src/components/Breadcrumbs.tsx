@@ -12,7 +12,7 @@ interface BreadcrumbsProps {
 
 const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ paths }) => {
     return (
-        <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-slate-400">
+        <nav className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
             {paths.map((path, index) => (
                 <React.Fragment key={index}>
                     {index > 0 && <ChevronRight size={14} className="text-gray-400" />}

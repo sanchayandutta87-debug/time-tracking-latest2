@@ -87,7 +87,7 @@ import { supabase } from '../utils/supabase';
 import { useAppContext } from '../context/AppContext';
 
 export default function ManageProjectsView() {
-  const { darkMode } = useAppContext();
+  const { darkMode, showToast, askConfirm } = useAppContext();
   const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -255,7 +255,7 @@ export default function ManageProjectsView() {
   const [editingProject, setEditingProject] = useState<any>(null);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this project and all its tasks?')) return;
+    askConfirm('Delete Project', 'Are you sure you want to delete this project and all its tasks?', async () => {
     
     try {
       // 1. Delete related tasks first (Supabase FK safety)
@@ -267,11 +267,13 @@ export default function ManageProjectsView() {
       
       setDropdownOpen(null);
       fetchProjects();
-    } catch (error) {
+      showToast('Project deleted successfully!');
+    } catch (error: any) {
       console.error('Error deleting project:', error);
-      alert('Failed to delete project. Check console for details.');
+      showToast('Failed to delete project: ' + error.message, 'error');
     }
-  };
+  });
+};
 
   const handleEditClick = (project: any) => {
     setEditingProject(project);
@@ -446,7 +448,7 @@ export default function ManageProjectsView() {
     // Check file sizes
     const oversizedFiles = selectedFiles.filter(f => f.size > 50 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
-      alert(`Some files are too large (max 50MB): ${oversizedFiles.map(f => f.name).join(', ')}`);
+      showToast(`Some files are too large (max 50MB): ${oversizedFiles.map(f => f.name).join(', ')}`, 'error');
       return;
     }
 
@@ -485,10 +487,10 @@ export default function ManageProjectsView() {
       setFormData({ projectName: '', assignedUserIds: [], role: 'Developer', priority: 'Medium', status: 'Active' });
       setSelectedFiles([]);
       fetchProjects(); 
-      alert('Project created successfully!');
+      showToast('Project created successfully!');
     } catch (error: any) {
       console.error('Error adding project:', error);
-      alert('Error creating project: ' + (error.message || 'Unknown error'));
+      showToast('Error creating project: ' + (error.message || 'Unknown error'), 'error');
     } finally {
       setIsUploading(false);
     }
@@ -537,10 +539,10 @@ export default function ManageProjectsView() {
       setIsEditModalOpen(false);
       setEditingProject(null);
       fetchProjects(); 
-      alert('Project updated successfully!');
+      showToast('Project updated successfully!');
     } catch (error: any) {
       console.error('Error updating project:', error);
-      alert('Error updating project: ' + (error.message || 'Unknown error'));
+      showToast('Error updating project: ' + (error.message || 'Unknown error'), 'error');
     }
   };
 
@@ -550,7 +552,7 @@ export default function ManageProjectsView() {
       <div className="flex justify-between items-end mb-10">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">Projects</h1>
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest">
+          <div className="flex items-center gap-2 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
             <span className="hover:text-blue-600 cursor-pointer transition-colors">Home</span>
             <ChevronRight size={12} />
             <span className="text-gray-900 dark:text-gray-300">Project Management</span>
@@ -565,13 +567,13 @@ export default function ManageProjectsView() {
       {/* Stats Cards Dynamics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
         {projectStats.map((stat, i) => (
-          <div key={i} className="bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl p-6 rounded-[2rem] border border-gray-100 dark:border-slate-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 flex items-center justify-between relative overflow-hidden group transition-all hover:scale-[1.02]">
+          <div key={i} className="bg-white/70 dark:bg-black p-6 rounded-[2rem] border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 flex items-center justify-between relative overflow-hidden group transition-all hover:scale-[1.02]">
             <div className="flex items-center gap-4 z-10">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-current/20" style={{ backgroundColor: stat.color }}>
                 {stat.icon}
               </div>
               <div>
-                <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-1">{stat.title}</p>
+                <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-1">{stat.title}</p>
                 <p className="text-3xl font-black text-gray-900 dark:text-white leading-none tracking-tight">{stat.value}</p>
               </div>
             </div>
@@ -587,7 +589,7 @@ export default function ManageProjectsView() {
       </div>
 
       {/* Tabs & Filters Area */}
-      <div className="bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 p-8 mb-8">
+      <div className="bg-white/70 dark:bg-black rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 p-8 mb-8">
         <div className="flex flex-col lg:flex-row justify-between items-center gap-8">
           <div className="flex flex-wrap items-center gap-2">
             {tabs.map((tab) => (
@@ -597,7 +599,7 @@ export default function ManageProjectsView() {
                 className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black transition-all active:scale-95 ${
                   activeTab === tab.label 
                     ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
-                    : 'text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700/50'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900'
                 }`}
               >
                 {tab.icon} {tab.label}
@@ -613,14 +615,14 @@ export default function ManageProjectsView() {
                 placeholder="Search projects..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all dark:text-white" 
+                className="w-full pl-12 pr-4 py-3.5 bg-gray-50/50 dark:bg-black border border-gray-100 dark:border-gray-800 rounded-2xl text-sm outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500/50 transition-all dark:text-white" 
               />
             </div>
             
             <div className="relative">
               <button 
                 onClick={() => setIsSortOpen(!isSortOpen)}
-                className="bg-gray-50/50 dark:bg-slate-900/50 border border-gray-100 dark:border-slate-700 px-5 py-3.5 rounded-2xl text-sm font-black text-gray-700 dark:text-slate-300 shadow-sm hover:border-blue-500/50 transition-all flex items-center gap-2 active:scale-95"
+                className="bg-gray-50/50 dark:bg-black border border-gray-100 dark:border-gray-800 px-5 py-3.5 rounded-2xl text-sm font-black text-gray-700 dark:text-gray-300 shadow-sm hover:border-blue-500/50 transition-all flex items-center gap-2 active:scale-95"
               >
                 <ChevronDown size={18} className={`transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
                 Sort: {sortOption}
@@ -629,12 +631,12 @@ export default function ManageProjectsView() {
               {isSortOpen && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setIsSortOpen(false)}></div>
-                  <div className="absolute top-full right-0 mt-3 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-700 p-2 z-40 animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute top-full right-0 mt-3 w-48 bg-white dark:bg-black rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 p-2 z-40 animate-in fade-in slide-in-from-top-2">
                     {['Newest', 'Oldest', 'Priority'].map(opt => (
                       <button 
                         key={opt}
                         onClick={() => { setSortOption(opt as any); setIsSortOpen(false); }}
-                        className={`block w-full text-left px-4 py-3 text-xs font-black rounded-xl transition-all ${sortOption === opt ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-700'}`}
+                        className={`block w-full text-left px-4 py-3 text-xs font-black rounded-xl transition-all ${sortOption === opt ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900'}`}
                       >
                         {opt}
                       </button>
@@ -648,20 +650,20 @@ export default function ManageProjectsView() {
       </div>
 
       {/* Table Container */}
-      <div className="bg-white/70 dark:bg-slate-800/40 backdrop-blur-xl rounded-[2.5rem] border border-gray-100 dark:border-slate-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 overflow-visible">
+      <div className="bg-white/70 dark:bg-black rounded-[2.5rem] border border-gray-100 dark:border-gray-800 shadow-2xl shadow-gray-200/50 dark:shadow-black/20 overflow-visible">
         <div className="overflow-x-auto overflow-y-visible min-h-[500px]">
           <table className="w-full text-left border-collapse min-w-[1000px]">
             <thead>
-              <tr className="border-b border-gray-100 dark:border-slate-700/50 bg-gray-50/30 dark:bg-slate-900/20">
-                <th className="pl-10 pr-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">Project Info</th>
-                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em]">Assigned Member</th>
-                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] text-center">Work Status</th>
-                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] text-center">Priority</th>
-                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] text-center">Spent Time</th>
-                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-[0.2em] text-right pr-10">Actions</th>
+              <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-black">
+                <th className="pl-10 pr-6 py-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Project Info</th>
+                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Assigned Member</th>
+                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] text-center">Work Status</th>
+                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] text-center">Priority</th>
+                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] text-center">Spent Time</th>
+                <th className="px-6 py-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] text-right pr-10">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50/50 dark:divide-slate-800/50">
+            <tbody className="divide-y divide-gray-50/50 dark:divide-gray-800">
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="py-32">
@@ -683,7 +685,7 @@ export default function ManageProjectsView() {
                     <td className="pl-10 pr-6 py-8">
                       <div className="flex flex-col">
                         <span className="text-sm font-black text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">{row.projectName}</span>
-                        <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mt-1">{row.code}</span>
+                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-1">{row.code}</span>
                       </div>
                     </td>
                     <td className="px-6 py-8">
@@ -692,7 +694,7 @@ export default function ManageProjectsView() {
                           {row.team && row.team.length > 0 ? (
                             row.team.slice(0, 3).map((member: any, i: number) => (
                               <div key={i} className="relative group/avatar">
-                                <div className="w-11 h-11 rounded-2xl border-2 border-white dark:border-slate-800 shadow-xl overflow-hidden group-hover:scale-110 transition-all duration-300">
+                                <div className="w-11 h-11 rounded-2xl border-2 border-white dark:border-gray-800 shadow-xl overflow-hidden group-hover:scale-110 transition-all duration-300">
                                   <img 
                                     src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}&background=random`} 
                                     alt={member.full_name} 
@@ -700,18 +702,18 @@ export default function ManageProjectsView() {
                                     referrerPolicy="no-referrer"
                                   />
                                 </div>
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-[10px] text-white rounded-lg opacity-0 group-hover/avatar:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none border border-white/10 shadow-2xl">
+                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-[10px] text-white rounded-lg opacity-0 group-hover/avatar:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none border border-white/10 shadow-2xl">
                                   {member.full_name}
                                 </div>
                               </div>
                             ))
                           ) : (
-                            <div className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-slate-900 border-2 border-dashed border-gray-300 dark:border-slate-700 flex items-center justify-center">
+                            <div className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-black border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center">
                               <User size={16} className="text-gray-400" />
                             </div>
                           )}
                           {row.team && row.team.length > 3 && (
-                            <div className="w-11 h-11 rounded-2xl bg-blue-600 border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-black text-white shadow-xl z-[5]">
+                            <div className="w-11 h-11 rounded-2xl bg-blue-600 border-2 border-white dark:border-gray-800 flex items-center justify-center text-[10px] font-black text-white shadow-xl z-[5]">
                               +{row.team.length - 3}
                             </div>
                           )}
@@ -721,7 +723,7 @@ export default function ManageProjectsView() {
                             {row.name}
                             {row.team && row.team.length > 1 && <span className="text-blue-500 ml-1">+{row.team.length - 1}</span>}
                           </span>
-                          <span className="text-[10px] font-bold text-gray-400 dark:text-slate-500 truncate mt-0.5">{row.role}</span>
+                          <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 truncate mt-0.5">{row.role}</span>
                         </div>
                       </div>
                     </td>
@@ -751,14 +753,14 @@ export default function ManageProjectsView() {
                     </td>
                     <td className="px-6 py-8">
                       <div className="flex flex-col items-center">
-                        <span className="text-xs font-black text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-900/60 px-3 py-1.5 rounded-xl border border-gray-200/50 dark:border-slate-700/50">{row.spentTime}</span>
-                        <span className="text-[9px] font-bold text-gray-400 dark:text-slate-500 mt-2 uppercase tracking-tighter">Since {row.createdDate}</span>
+                        <span className="text-xs font-black text-gray-900 dark:text-white bg-gray-100 dark:bg-black px-3 py-1.5 rounded-xl border border-gray-200/50 dark:border-gray-800">{row.spentTime}</span>
+                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 mt-2 uppercase tracking-tighter">Since {row.createdDate}</span>
                       </div>
                     </td>
                     <td className="px-6 py-8 text-right pr-10 relative">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setDropdownOpen(dropdownOpen === row.id ? null : row.id); }}
-                        className={`p-2 rounded-xl transition-all active:scale-90 ${dropdownOpen === row.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800'}`}
+                        className={`p-2 rounded-xl transition-all active:scale-90 ${dropdownOpen === row.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-900'}`}
                       >
                         <MoreVertical size={20} />
                       </button>
@@ -767,20 +769,20 @@ export default function ManageProjectsView() {
                       {dropdownOpen === row.id && (
                         <>
                           <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(null)}></div>
-                          <div className="absolute right-10 top-16 z-50 w-52 bg-white dark:bg-slate-800 rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-slate-700 p-2 animate-in fade-in slide-in-from-top-4 flex flex-col">
+                          <div className="absolute right-10 top-16 z-50 w-52 bg-white dark:bg-black rounded-[1.5rem] shadow-2xl border border-gray-100 dark:border-gray-800 p-2 animate-in fade-in slide-in-from-top-4 flex flex-col">
                             <button 
                               onClick={() => handleEditClick(row)}
-                              className="flex items-center gap-3 px-4 py-3 text-xs font-black text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition-all"
+                              className="flex items-center gap-3 px-4 py-3 text-xs font-black text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
                             >
                               <Edit2 size={16} className="text-blue-500" /> Edit Project
                             </button>
                             <button 
                               onClick={() => handleManageTeamClick(row)}
-                              className="flex items-center gap-3 px-4 py-3 text-xs font-black text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 rounded-xl transition-all"
+                              className="flex items-center gap-3 px-4 py-3 text-xs font-black text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
                             >
                               <UserCheck size={16} className="text-emerald-500" /> Manage Team
                             </button>
-                            <div className="h-px bg-gray-100 dark:bg-slate-700 my-1 mx-2"></div>
+                            <div className="h-px bg-gray-100 dark:bg-gray-800 my-1 mx-2"></div>
                             <button 
                               onClick={() => handleDelete(row.id)}
                               className="flex items-center gap-3 px-4 py-3 text-xs font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
@@ -798,9 +800,9 @@ export default function ManageProjectsView() {
                 <tr>
                   <td colSpan={7} className="px-6 py-32 text-center">
                     <div className="max-w-xs mx-auto">
-                      <Search size={48} className="text-gray-200 dark:text-slate-800 mx-auto mb-4" />
-                      <p className="text-lg font-bold text-gray-300 dark:text-slate-700 mb-2">No Projects Found</p>
-                      <p className="text-xs text-gray-400 dark:text-slate-600 uppercase tracking-widest">Adjust your filters or search terms</p>
+                      <Search size={48} className="text-gray-200 dark:text-gray-800 mx-auto mb-4" />
+                      <p className="text-lg font-bold text-gray-300 dark:text-gray-700 mb-2">No Projects Found</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-600 uppercase tracking-widest">Adjust your filters or search terms</p>
                     </div>
                   </td>
                 </tr>
@@ -814,15 +816,15 @@ export default function ManageProjectsView() {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsAddModalOpen(false)}></div>
-          <div className="bg-slate-900/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-lg relative z-10 border border-white/10 animate-in fade-in zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-black/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-lg relative z-10 border border-white/10 animate-in fade-in zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[90vh]">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600"></div>
             
             <div className="flex items-center justify-between p-8 border-b border-white/5 shrink-0">
               <div>
                 <h2 className="text-2xl font-black text-white tracking-tight">Add New Project</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Setup your next big venture</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1">Setup your next big venture</p>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
+              <button onClick={() => setIsAddModalOpen(false)} className="text-gray-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -830,20 +832,20 @@ export default function ManageProjectsView() {
             <form onSubmit={handleAddSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-8 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Project Name</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Project Name</label>
                   <input 
                     type="text" 
                     required
                     value={formData.projectName}
                     onChange={e => setFormData({...formData, projectName: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none transition-all placeholder:text-slate-600"
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none transition-all placeholder:text-gray-600"
                     placeholder="e.g., Nexus Mobile App"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mb-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Assigned To</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Assigned To</label>
                     <div className="relative">
                       <select 
                         onChange={(e) => {
@@ -855,15 +857,15 @@ export default function ManageProjectsView() {
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                         value=""
                       >
-                        <option value="" className="bg-slate-900 text-slate-500">Add Team Member...</option>
+                        <option value="" className="bg-black text-gray-500">Add Team Member...</option>
                         {users
                           .filter(u => !formData.assignedUserIds.includes(u.id))
                           .map(u => (
-                            <option key={u.id} value={u.id} className="bg-slate-900 text-white">{u.full_name}</option>
+                            <option key={u.id} value={u.id} className="bg-black text-white">{u.full_name}</option>
                           ))
                         }
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                     
                     {/* Selected Member Tags */}
@@ -884,59 +886,59 @@ export default function ManageProjectsView() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Primary Role</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Primary Role</label>
                     <div className="relative">
                       <select 
                         value={formData.role}
                         onChange={e => setFormData({...formData, role: e.target.value})}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                       >
-                        <option value="Developer" className="bg-slate-900 text-white">Developer</option>
-                        <option value="Designer" className="bg-slate-900 text-white">Designer</option>
-                        <option value="Manager" className="bg-slate-900 text-white">Manager</option>
+                        <option value="Developer" className="bg-black text-white">Developer</option>
+                        <option value="Designer" className="bg-black text-white">Designer</option>
+                        <option value="Manager" className="bg-black text-white">Manager</option>
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 mb-4">
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Priority</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Priority</label>
                     <div className="relative">
                       <select 
                         value={formData.priority}
                         onChange={e => setFormData({...formData, priority: e.target.value})}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                       >
-                        <option value="Low" className="bg-slate-900 text-white">Low</option>
-                        <option value="Medium" className="bg-slate-900 text-white">Medium</option>
-                        <option value="High" className="bg-slate-900 text-white">High</option>
+                        <option value="Low" className="bg-black text-white">Low</option>
+                        <option value="Medium" className="bg-black text-white">Medium</option>
+                        <option value="High" className="bg-black text-white">High</option>
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Initial Status</label>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Initial Status</label>
                     <div className="relative">
                       <select 
                         value={formData.status}
                         onChange={e => setFormData({...formData, status: e.target.value})}
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                       >
-                        <option value="Active" className="bg-slate-900 text-white">Active</option>
-                        <option value="Pending" className="bg-slate-900 text-white">Pending</option>
-                        <option value="Assigned" className="bg-slate-900 text-white">Assigned</option>
-                        <option value="Incomplete" className="bg-slate-900 text-white">Incomplete</option>
+                        <option value="Active" className="bg-black text-white">Active</option>
+                        <option value="Pending" className="bg-black text-white">Pending</option>
+                        <option value="Assigned" className="bg-black text-white">Assigned</option>
+                        <option value="Incomplete" className="bg-black text-white">Incomplete</option>
                       </select>
-                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                      <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                     </div>
                   </div>
                 </div>
 
                 {/* Upload Zone */}
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Project Files</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Project Files</label>
                   <div className="relative group">
                     <input 
                       type="file" 
@@ -950,7 +952,7 @@ export default function ManageProjectsView() {
                       </div>
                       <div className="text-center">
                         <p className="text-sm font-black text-white">Drop files or click to upload</p>
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">PDF, ZIP, DOCX up to 10MB</p>
+                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">PDF, ZIP, DOCX up to 10MB</p>
                       </div>
                     </div>
                   </div>
@@ -961,9 +963,9 @@ export default function ManageProjectsView() {
                         <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
                           <div className="flex items-center gap-3">
                             <File size={16} className="text-blue-400" />
-                            <span className="text-xs font-bold text-slate-300 truncate max-w-[200px]">{f.name}</span>
+                            <span className="text-xs font-bold text-gray-300 truncate max-w-[200px]">{f.name}</span>
                           </div>
-                          <span className="text-[9px] font-black text-slate-500 uppercase">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
+                          <span className="text-[9px] font-black text-gray-500 uppercase">{(f.size / 1024 / 1024).toFixed(2)} MB</span>
                         </div>
                       ))}
                     </div>
@@ -995,61 +997,61 @@ export default function ManageProjectsView() {
       {isEditModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)}></div>
-          <div className="bg-slate-900/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-lg relative z-10 border border-white/10 animate-in fade-in zoom-in-95 duration-300 overflow-hidden">
+          <div className="bg-black/90 backdrop-blur-2xl rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-lg relative z-10 border border-white/10 animate-in fade-in zoom-in-95 duration-300 overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600"></div>
             
             <div className="flex items-center justify-between p-8 border-b border-white/5">
               <div>
                 <h2 className="text-2xl font-black text-white tracking-tight">Edit Project</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Update project details</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1">Update project details</p>
               </div>
-              <button onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
+              <button onClick={() => setIsEditModalOpen(false)} className="text-gray-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
                 <X size={20} />
               </button>
             </div>
             
             <form onSubmit={handleEditSubmit} className="p-8 space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Project Name</label>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Project Name</label>
                 <input 
                   type="text" 
                   required
                   value={formData.projectName}
                   onChange={e => setFormData({...formData, projectName: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none transition-all placeholder:text-slate-600"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none transition-all placeholder:text-gray-600"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Priority</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Priority</label>
                   <div className="relative">
                     <select 
                       value={formData.priority}
                       onChange={e => setFormData({...formData, priority: e.target.value})}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                     >
-                      <option value="Low" className="bg-slate-900 text-white">Low</option>
-                      <option value="Medium" className="bg-slate-900 text-white">Medium</option>
-                      <option value="High" className="bg-slate-900 text-white">High</option>
+                      <option value="Low" className="bg-black text-white">Low</option>
+                      <option value="Medium" className="bg-black text-white">Medium</option>
+                      <option value="High" className="bg-black text-white">High</option>
                     </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Status</label>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 px-1">Status</label>
                   <div className="relative">
                     <select 
                       value={formData.status}
                       onChange={e => setFormData({...formData, status: e.target.value})}
                       className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                     >
-                      <option value="Active" className="bg-slate-900 text-white">Active</option>
-                      <option value="Pending" className="bg-slate-900 text-white">Pending</option>
-                      <option value="Assigned" className="bg-slate-900 text-white">Assigned</option>
-                      <option value="Incomplete" className="bg-slate-900 text-white">Incomplete</option>
+                      <option value="Active" className="bg-black text-white">Active</option>
+                      <option value="Pending" className="bg-black text-white">Pending</option>
+                      <option value="Assigned" className="bg-black text-white">Assigned</option>
+                      <option value="Incomplete" className="bg-black text-white">Incomplete</option>
                     </select>
-                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                   </div>
                 </div>
               </div>
@@ -1077,15 +1079,15 @@ export default function ManageProjectsView() {
       {isTeamModalOpen && selectedProjectForTeam && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={() => setIsTeamModalOpen(false)}></div>
-          <div className="bg-slate-900/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl w-full max-w-xl relative z-10 border border-white/10 animate-in fade-in zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[80vh]">
+          <div className="bg-black/95 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl w-full max-w-xl relative z-10 border border-white/10 animate-in fade-in zoom-in-95 duration-300 overflow-hidden flex flex-col max-h-[80vh]">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500"></div>
             
             <div className="p-8 border-b border-white/5 flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-black text-white tracking-tight">Manage Team</h2>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">{selectedProjectForTeam.projectName}</p>
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1">{selectedProjectForTeam.projectName}</p>
               </div>
-              <button onClick={() => setIsTeamModalOpen(false)} className="text-slate-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
+              <button onClick={() => setIsTeamModalOpen(false)} className="text-gray-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
                 <X size={20} />
               </button>
             </div>
@@ -1093,7 +1095,7 @@ export default function ManageProjectsView() {
             <div className="p-8 overflow-y-auto flex-1 space-y-8">
               {/* Current Members Section */}
               <div className="space-y-4">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Current Members ({projectMembers.length})</h3>
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Current Members ({projectMembers.length})</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {projectMembers.length > 0 ? projectMembers.map((member: any, i) => (
                     <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
@@ -1101,19 +1103,19 @@ export default function ManageProjectsView() {
                         <img src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}`} alt="" className="w-10 h-10 rounded-xl object-cover border border-white/10" />
                         <div>
                           <p className="text-sm font-black text-white">{member.full_name}</p>
-                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{member.job_title || 'Team Member'}</p>
+                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{member.job_title || 'Team Member'}</p>
                         </div>
                       </div>
                       <button 
                         onClick={() => handleRemoveTeamMember(member.id)}
-                        className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
                   )) : (
                     <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                      <p className="text-sm font-bold text-slate-500">No members assigned yet.</p>
+                      <p className="text-sm font-bold text-gray-500">No members assigned yet.</p>
                     </div>
                   )}
                 </div>
@@ -1121,22 +1123,22 @@ export default function ManageProjectsView() {
 
               {/* Add New Member Section */}
               <div className="space-y-4 pt-4 border-t border-white/5">
-                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">Add Team Member</h3>
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Add Team Member</h3>
                 <div className="relative">
                   <select 
                     onChange={(e) => e.target.value && handleAddTeamMember(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500/50 outline-none appearance-none transition-all"
                     value=""
                   >
-                    <option value="" className="bg-slate-900 text-slate-500">Choose an employee...</option>
+                    <option value="" className="bg-black text-gray-500">Choose an employee...</option>
                     {users
                       .filter(u => !projectMembers.some(m => m.id === u.id))
                       .map(u => (
-                        <option key={u.id} value={u.id} className="bg-slate-900 text-white">{u.full_name}</option>
+                        <option key={u.id} value={u.id} className="bg-black text-white">{u.full_name}</option>
                       ))
                     }
                   </select>
-                  <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                  <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                 </div>
               </div>
             </div>
@@ -1159,15 +1161,15 @@ export default function ManageProjectsView() {
           
           <div className="absolute inset-y-0 right-0 max-w-full flex">
             <div className="w-screen max-w-md animate-in slide-in-from-right duration-500">
-              <div className="h-full flex flex-col bg-slate-900/95 backdrop-blur-3xl border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+              <div className="h-full flex flex-col bg-black/95 backdrop-blur-3xl border-l border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-600 via-purple-600 to-blue-600"></div>
                 
                 <div className="p-8 flex items-center justify-between border-b border-white/5">
                   <div>
                     <h2 className="text-2xl font-black text-white tracking-tight">Project Insight</h2>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">{selectedProjectForDetails.code}</p>
+                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mt-1">{selectedProjectForDetails.code}</p>
                   </div>
-                  <button onClick={() => setIsDetailsDrawerOpen(false)} className="text-slate-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
+                  <button onClick={() => setIsDetailsDrawerOpen(false)} className="text-gray-400 hover:text-white hover:bg-white/5 p-3 rounded-2xl transition-all">
                     <X size={20} />
                   </button>
                 </div>
@@ -1184,11 +1186,11 @@ export default function ManageProjectsView() {
                       }`}>
                         {selectedProjectForDetails.priority} Priority
                       </span>
-                      <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/5 text-slate-400 border border-white/10">
+                      <span className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/5 text-gray-400 border border-white/10">
                         {selectedProjectForDetails.status}
                       </span>
                     </div>
-                    <p className="text-sm text-slate-400 leading-relaxed font-medium">
+                    <p className="text-sm text-gray-400 leading-relaxed font-medium">
                       This project focuses on delivering high-performance solutions for our core objectives. Our team is working closely to ensure quality and timely delivery of all key features and milestones.
                     </p>
                   </div>
@@ -1196,11 +1198,11 @@ export default function ManageProjectsView() {
                   {/* Team Members Section */}
                   <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Project Team ({selectedProjectForDetails.team?.length || 0})</h4>
+                      <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Project Team ({selectedProjectForDetails.team?.length || 0})</h4>
                     </div>
                     <div className="space-y-3">
                       {selectedProjectForDetails.team?.map((member: any, i: number) => (
-                        <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
+                        <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-blue-400/30 transition-all">
                           <img 
                             src={member.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.full_name)}`} 
                             className="w-12 h-12 rounded-xl object-cover border border-white/10" 
@@ -1208,7 +1210,7 @@ export default function ManageProjectsView() {
                           />
                           <div>
                             <p className="text-sm font-black text-white group-hover:text-blue-400 transition-colors">{member.full_name}</p>
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{member.job_title || 'Expert'}</p>
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">{member.job_title || 'Expert'}</p>
                           </div>
                         </div>
                       ))}
@@ -1217,7 +1219,7 @@ export default function ManageProjectsView() {
 
                   {/* Project Files Section */}
                   <div className="space-y-6">
-                    <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Project Files ({projectAttachments.length})</h4>
+                    <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em]">Project Files ({projectAttachments.length})</h4>
                     <div className="grid grid-cols-1 gap-3">
                       {projectAttachments.length > 0 ? projectAttachments.map((file, i) => (
                         <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5 group hover:border-blue-500/30 transition-all">
@@ -1227,21 +1229,21 @@ export default function ManageProjectsView() {
                             </div>
                             <div>
                               <p className="text-sm font-black text-white truncate max-w-[180px]">{file.name}</p>
-                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Document</p>
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Document</p>
                             </div>
                           </div>
                           <a 
                             href={file.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+                            className="p-3 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
                           >
                             <Download size={18} />
                           </a>
                         </div>
                       )) : (
                         <div className="p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
-                          <p className="text-sm font-bold text-slate-500">No files attached yet.</p>
+                          <p className="text-sm font-bold text-gray-500">No files attached yet.</p>
                         </div>
                       )}
                     </div>
@@ -1250,11 +1252,11 @@ export default function ManageProjectsView() {
                   {/* Stats Section */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Total Spent</p>
+                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">Total Spent</p>
                       <p className="text-2xl font-black text-white">{selectedProjectForDetails.spentTime}</p>
                     </div>
                     <div className="p-6 bg-white/5 rounded-2xl border border-white/5">
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Since</p>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Since</p>
                       <p className="text-sm font-black text-white">{selectedProjectForDetails.createdDate}</p>
                     </div>
                   </div>

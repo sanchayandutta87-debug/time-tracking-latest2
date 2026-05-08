@@ -34,45 +34,68 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+import { useAppContext } from './AppContext';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { showToast } = useAppContext();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isAuthenticated = currentUser !== null;
 
+  const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number = 8000) => {
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timed out.')), timeoutMs)
+    );
+    return Promise.race([promise, timeout]);
+  };
+
   // Sync user profile from public.users table
-  const fetchUserProfile = async (userId: string, email: string, provider: 'email' | 'google' = 'email') => {
-    try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+  // Sync user profile from public.users table with retry logic
+  const fetchUserProfile = async (userId: string, email: string, provider: 'email' | 'google' = 'email', retries = 2) => {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const { data, error, status } = await fetchWithTimeout(supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single(), 15000) as any;
 
-      if (error || !data) {
-        console.error('Error fetching profile:', error);
-        return null;
+        if (error) {
+          if (status === 406 || error.code === 'PGRST116') return 'NOT_FOUND';
+          if (i === retries) return null; // Network/Timeout error
+          continue;
+        }
+
+        if (!data) {
+          if (i === retries) return 'NOT_FOUND';
+          continue;
+        }
+
+        return {
+          id: data.id,
+          fullName: data.full_name,
+          email: data.email,
+          jobTitle: data.job_title || '',
+          role: data.role || 'Employee',
+          avatar: data.avatar_url || '',
+          phone: data.phone || '',
+          address: data.address || '',
+          country: data.country || '',
+          state: data.state || '',
+          city: data.city || '',
+          postalCode: data.postal_code || '',
+          provider: provider,
+        } as AuthUser;
+      } catch (err) {
+        if (i === retries) {
+          console.error('Unexpected error fetching profile:', err);
+          return null;
+        }
+        await new Promise(res => setTimeout(res, 1000));
       }
-
-      return {
-        id: data.id,
-        fullName: data.full_name,
-        email: data.email,
-        jobTitle: data.job_title || '',
-        role: data.role || 'Employee',
-        avatar: data.avatar_url || '',
-        phone: data.phone || '',
-        address: data.address || '',
-        country: data.country || '',
-        state: data.state || '',
-        city: data.city || '',
-        postalCode: data.postal_code || '',
-        provider: provider,
-      } as AuthUser;
-    } catch (err) {
-      console.error('Unexpected error fetching profile:', err);
-      return null;
     }
+    return null;
   };
 
   // Helper to ensure profile exists
@@ -85,9 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user.email!, 
         user.app_metadata.provider as any
       );
-      console.log('Profile fetch result:', profile ? 'Found' : 'Missing');
+      
+      console.log('Profile fetch result:', typeof profile === 'string' ? profile : (profile ? 'Found' : 'Network Error'));
 
-      if (!profile) {
+      if (profile === 'NOT_FOUND') {
         console.log('Creating missing profile...');
         const { error: insertError } = await supabase
           .from('users')
@@ -96,42 +120,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             full_name: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
             email: user.email,
             avatar_url: user.user_metadata.avatar_url,
-            role: 'Employee',
+            role: 'Employee', // Initial role for NEW users
           });
         
         if (!insertError) {
           console.log('Profile created, fetching again...');
-          profile = await fetchUserProfile(
+          const newProfile = await fetchUserProfile(
             user.id, 
             user.email!, 
             user.app_metadata.provider as any
           );
+          return typeof newProfile === 'string' ? null : newProfile;
         } else {
           console.error('Failed to create profile:', insertError);
+          return null;
         }
       }
-      if (!profile) {
-        console.warn('Returning fallback profile from Auth metadata');
-        return {
-          id: user.id,
-          email: user.email!,
-          fullName: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
-          role: 'Employee',
-          avatar: user.user_metadata.avatar_url || '',
-          provider: user.app_metadata.provider as any
-        } as AuthUser;
-      }
-      return profile;
+      
+      // If profile is null (Network Error), return null to trigger logout/retry 
+      // rather than returning a downgraded fallback profile.
+      return profile as AuthUser | null;
     } catch (err) {
       console.error('Critical error in ensureProfileExists:', err);
-      return {
-        id: user.id,
-        email: user.email!,
-        fullName: user.user_metadata.full_name || user.email?.split('@')[0] || 'User',
-        role: 'Employee',
-        avatar: user.user_metadata.avatar_url || '',
-        provider: user.app_metadata.provider as any
-      } as AuthUser;
+      return null;
     }
   };
 
@@ -200,6 +211,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Fail-safe: stop loading after 10 seconds no matter what
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading && mounted) {
+        console.warn('Auth initialization timed out, forcing stop loading.');
+        setIsLoading(false);
+      }
+    }, 20000);
+
     initialize();
 
     // 2. Presence Heartbeat
@@ -239,6 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -275,7 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         full_name: data.fullName,
         email: data.email,
         job_title: data.jobTitle || '',
-        role: 'admin', // Default first user as admin or handle logic as needed
+        role: 'Administrator', // Default first user as admin or handle logic as needed
       });
 
     if (profileError) {
@@ -328,7 +348,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
         if (error) {
           console.error('Error updating clock-out:', error);
-          alert('Failed to clock out: ' + error.message);
+          showToast('Failed to clock out: ' + error.message, 'error');
         }
       }
     } catch (err) {

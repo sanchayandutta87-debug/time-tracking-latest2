@@ -326,24 +326,19 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
     };
   }, [currentUser]);
   return (
-    <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-[#0a0a1a]' : 'bg-gray-50'}`}>
+    <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-6 px-6 pt-4 shrink-0">
         <div>
           <h1 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>User Dashboard</h1>
           <p className="text-sm text-gray-400 mt-1">Welcome back! Here's your work overview.</p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <span className={`${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Home</span>
-          <ChevronRight size={14} className="rtl:rotate-180" />
-          <span className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>User Dashboard</span>
-        </div>
       </div>
 
       <div className="px-6 pb-12 space-y-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -364,7 +359,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
             </div>
           </div>
 
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -389,7 +384,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
         {/* Second Row: Weekly Hours + Task Breakdown */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Weekly Hours Chart */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-8 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-8 p-6 rounded-xl border shadow-sm`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Weekly Hours</h3>
               <div className="flex gap-4">
@@ -410,14 +405,14 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
                   <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} dy={10} reversed={isRTL} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9ca3af' }} orientation={isRTL ? 'right' : 'left'} />
                   <Tooltip 
-                    cursor={{ fill: isDarkMode ? '#1f2937' : '#f9fafb' }}
+                    cursor={{ fill: isDarkMode ? '#000000' : '#f9fafb' }}
                     content={({ active, payload }) => {
                       if (active && payload && payload.length) {
                         const val = payload[0].value as number;
                         const h = Math.floor(val);
                         const m = Math.round((val - h) * 60);
                         return (
-                          <div className={`${isDarkMode ? 'bg-[#1a1a2e] border-gray-800' : 'bg-white border-gray-100'} p-3 rounded-lg border shadow-xl`}>
+                          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-3 rounded-lg border shadow-xl`}>
                             <p className="text-xs font-bold text-gray-400 mb-1">{payload[0].payload.name}</p>
                             <p className={`text-sm font-black ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>
                               Hours: {h}h {m}m
@@ -437,7 +432,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
           </div>
 
           {/* Task Breakdown Donut */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Task Breakdown</h3>
             <div className="h-48 relative">
               <ResponsiveContainer width="100%" height="100%">
@@ -479,7 +474,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
         {/* Third Row: Recent Activities + Upcoming Deadlines */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Recent Activities */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-8 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-8 p-6 rounded-xl border shadow-sm`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Recent Activities</h3>
               <button className="text-xs font-medium text-blue-600 hover:text-blue-700">View All</button>
@@ -512,7 +507,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
             </div>
           </div>
 
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-4 p-6 rounded-xl border shadow-sm`}>
             <h3 className={`text-base font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>My Projects</h3>
             <div className="space-y-5">
               {projects.map((project, i) => (
@@ -543,7 +538,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
         {/* Fourth Row: Productivity Trend */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Productivity Trend */}
-          <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} lg:col-span-12 p-6 rounded-xl border shadow-sm`}>
+          <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} lg:col-span-12 p-6 rounded-xl border shadow-sm`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`text-base font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Productivity Trend</h3>
               <div className={`flex items-center gap-2 px-2 py-1 rounded-lg ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
@@ -570,8 +565,8 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
                     dataKey="score"
                     stroke="#6366f1"
                     strokeWidth={3}
-                    dot={{ r: 4, fill: '#6366f1', stroke: isDarkMode ? '#15152b' : '#fff', strokeWidth: 2 }}
-                    activeDot={{ r: 6, fill: '#6366f1', stroke: isDarkMode ? '#15152b' : '#fff', strokeWidth: 2 }}
+                    dot={{ r: 4, fill: '#6366f1', stroke: isDarkMode ? '#000000' : '#fff', strokeWidth: 2 }}
+                    activeDot={{ r: 6, fill: '#6366f1', stroke: isDarkMode ? '#000000' : '#fff', strokeWidth: 2 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -580,7 +575,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
         </div>
 
         {/* Quick Actions Bar */}
-        <div className={`${isDarkMode ? 'bg-[#15152b] border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm`}>
+        <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm`}>
           <h3 className={`text-base font-bold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button 
@@ -611,7 +606,7 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
       {/* Screenshot Preview Modal */}
       {selectedScreenshot && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-w-5xl w-full bg-white dark:bg-[#15152b] rounded-2xl overflow-hidden shadow-2xl scale-in-center">
+          <div className="relative max-w-5xl w-full bg-white dark:bg-black rounded-2xl overflow-hidden shadow-2xl scale-in-center">
             <div className="flex justify-between items-center p-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>Screenshot Preview</h3>
               <button 

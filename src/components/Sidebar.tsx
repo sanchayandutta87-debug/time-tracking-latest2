@@ -5,13 +5,23 @@ import {
   Mic, ChevronDown, ChevronRight, Box, Activity, Umbrella, 
   UserCheck, Receipt, Briefcase, FileCheck, Camera, Download, Clock,
   UserPlus, History, User, List, Bell, ClipboardList, Settings,
-  Network, Orbit, SquarePen, LayoutGrid, PieChart, Shapes, Map, Lock
+  Network, Orbit, SquarePen, LayoutGrid, PieChart, Shapes, Map, Lock, Shield
 } from 'lucide-react';
 
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function Sidebar({ currentView, onViewChange }: { currentView: string, onViewChange: (view: string) => void }) {
+export default function Sidebar({ 
+  currentView, 
+  onViewChange, 
+  collapsed = false, 
+  setCollapsed 
+}: { 
+  currentView: string, 
+  onViewChange: (view: string) => void,
+  collapsed?: boolean,
+  setCollapsed?: (collapsed: boolean) => void
+}) {
   const { darkMode } = useAppContext();
   const { isAuthenticated, currentUser } = useAuth();
   
@@ -68,170 +78,139 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
   ];
 
   return (
-    <div className={`w-64 ${darkMode ? 'bg-black border-gray-800 text-gray-300' : 'bg-white dark:bg-black border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300'} h-screen flex flex-col border-r overflow-y-auto transition-colors duration-500`}>
+    <div className={`${collapsed ? 'w-20' : 'w-64'} ${darkMode ? 'bg-black border-gray-800 text-gray-300' : 'bg-white border-gray-200 text-gray-600'} h-screen flex flex-col border-r overflow-y-auto transition-all duration-300`}>
       <div className="p-4">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Main</p>
+        <p className={`text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 ${collapsed ? 'text-center' : ''}`}>
+          {collapsed ? '...' : 'Main'}
+        </p>
         <nav className="space-y-1">
-          <div className="mt-1">
+          {isAdmin && (
             <div 
-              onClick={() => setIsDashboardOpen(!isDashboardOpen)}
-              className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${isDashboardActive || isDashboardOpen ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
+              onClick={() => handleDashboardSwitch('admin-dashboard')}
+              className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'admin-dashboard' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              title={collapsed ? 'Admin Dashboard' : ''}
             >
-              <div className="flex items-center gap-3">
-                <LayoutDashboard size={18} />
-                <span className="text-sm font-medium">Dashboard</span>
-              </div>
-              {isDashboardOpen || isDashboardActive ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+              <Shield size={18} className="shrink-0" />
+              {!collapsed && <span className="text-sm font-medium">Admin Dashboard</span>}
             </div>
-            
-            {(isDashboardOpen || isDashboardActive) && (
-              <div className={`ml-4 mt-1 space-y-1 border-l-2 ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
-                {isAdmin && (
-                  <div 
-                    onClick={() => handleDashboardSwitch('admin-dashboard')}
-                    className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === 'admin-dashboard' ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}
-                  >
-                    {currentView === 'admin-dashboard' && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full" />}
-                    <span className={`${currentView === 'admin-dashboard' ? 'text-blue-500' : 'text-gray-600 dark:text-gray-300'} font-bold mr-1`}>−</span>
-                    <span className="text-sm">Admin Dashboard</span>
-                  </div>
-                )}
-                <div 
-                  onClick={() => handleDashboardSwitch('user-dashboard')}
-                  className={`flex items-center gap-3 p-2 pl-6 cursor-pointer relative transition-all ${currentView === 'user-dashboard' ? 'text-blue-500 font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-300'}`}
-                >
-                  {currentView === 'user-dashboard' && <div className="absolute left-[-2px] top-1/2 -translate-y-1/2 w-0.5 h-4 bg-blue-500 rounded-full" />}
-                  <span className={`${currentView === 'user-dashboard' ? 'text-blue-500' : 'text-gray-600 dark:text-gray-300'} font-bold mr-1`}>−</span>
-                  <span className="text-sm">User Dashboard</span>
-                </div>
-              </div>
-            )}
+          )}
+          <div 
+            onClick={() => handleDashboardSwitch('user-dashboard')}
+            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'user-dashboard' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+            title={collapsed ? 'User Dashboard' : ''}
+          >
+            <LayoutGrid size={18} className="shrink-0" />
+            {!collapsed && <span className="text-sm font-medium">User Dashboard</span>}
           </div>
           
         </nav>
 
-        {/* ===== USER MODE SIDEBAR ===== */}
-        {isUserMode && (
+        {/* ===== USER SPECIFIC ITEMS ===== */}
+        {(isUserMode || !isAdmin) && (
+          <nav className="space-y-1 mt-6">
+            <p className={`text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 ${collapsed ? 'text-center' : ''}`}>
+              {collapsed ? '...' : 'Self Service'}
+            </p>
+            <SidebarItem icon={<UserCheck size={18} />} label="Attendance" active={currentView === 'attendance'} onClick={() => onViewChange('attendance')} darkMode={darkMode} collapsed={collapsed} />
+            <SidebarItem icon={<Umbrella size={18} />} label="Leave" active={currentView === 'leave'} onClick={() => onViewChange('leave')} darkMode={darkMode} collapsed={collapsed} />
+            <SidebarItem icon={<Briefcase size={18} />} label="Projects" active={currentView === 'projects'} onClick={() => onViewChange('projects')} darkMode={darkMode} collapsed={collapsed} />
+            <SidebarItem icon={<Activity size={18} />} label="Live Tracking" active={currentView === 'live-tracking'} onClick={() => onViewChange('live-tracking')} darkMode={darkMode} collapsed={collapsed} />
+            <SidebarItem icon={<Folder size={18} />} label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} darkMode={darkMode} collapsed={collapsed} />
+          </nav>
+        )}
+
+        {/* ===== ADMIN SPECIFIC ITEMS ===== */}
+        {isAdmin && (
           <>
-            <nav className="space-y-1 mt-6">
-              <SidebarItem icon={<UserCheck size={18} />} label="Attendance" active={currentView === 'attendance'} onClick={() => onViewChange('attendance')} darkMode={darkMode} />
-              <SidebarItem icon={<Umbrella size={18} />} label="Leave" active={currentView === 'leave'} onClick={() => onViewChange('leave')} darkMode={darkMode} />
-              <SidebarItem icon={<Briefcase size={18} />} label="Projects" active={currentView === 'projects'} onClick={() => onViewChange('projects')} darkMode={darkMode} />
-              <SidebarItem icon={<Activity size={18} />} label="Live Tracking" active={currentView === 'live-tracking'} onClick={() => onViewChange('live-tracking')} darkMode={darkMode} />
-              <SidebarItem icon={<Folder size={18} />} label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} darkMode={darkMode} />
-              
-              {/* Reports with sub-items - LOCKED for everyone */}
-              <div className="mt-1">
-                <div 
-                  className={`flex items-center justify-between p-2 rounded-lg opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ClipboardList size={18} />
-                    <span className="text-sm font-medium">Reports</span>
-                  </div>
-                  <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                    Locked
-                  </div>
+            <div className="mt-8 mb-4 border-t border-gray-100 dark:border-gray-800 pt-4">
+              <p className={`text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 ${collapsed ? 'text-center' : ''}`}>
+                {collapsed ? '...' : 'Administration'}
+              </p>
+              <div 
+                onClick={() => onViewChange('file-manager')}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'file-manager' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              >
+                <Folder size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">File Manager</span>}
+              </div>
+            </div>
+
+            <p className={`text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8 ${collapsed ? 'text-center' : ''}`}>
+              {collapsed ? '...' : 'Track'}
+            </p>
+            <nav className="space-y-1">
+              <div 
+                onClick={() => onViewChange('live-tracking')}
+                className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${currentView === 'live-tracking' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Activity size={18} className="shrink-0" />
+                  {!collapsed && <span className="text-sm font-medium">Live Tracking</span>}
                 </div>
+                {!collapsed && <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>}
+              </div>
+              <div 
+                onClick={() => onViewChange('leave')}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'leave' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              >
+                <Umbrella size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Leave</span>}
+              </div>
+              <div 
+                onClick={() => onViewChange('attendance')}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'attendance' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              >
+                <UserCheck size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Attendance</span>}
               </div>
             </nav>
 
-
-          </>
-        )}
-
-        {/* ===== ADMIN MODE SIDEBAR ===== */}
-        {!isUserMode && (
-          <>
-          <div className="mt-4">
-            <div className={`flex items-center justify-between p-2 rounded-lg cursor-pointer ${darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'}`}>
-              <div className="flex items-center gap-3">
-                <LayoutDashboard size={18} />
-                <span className="text-sm font-medium">Applications</span>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Manage</p>
+            <nav className="space-y-1">
+              <div 
+                onClick={() => onViewChange('projects')}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'projects' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              >
+                <Briefcase size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Projects</span>}
               </div>
-              <ChevronDown size={14} />
-            </div>
-            
-            <div className={`ml-4 mt-1 space-y-1 border-l-2 ${darkMode ? 'border-gray-800' : 'border-gray-100 dark:border-gray-800'}`}>
-              <NavItem label="File Manager" active={currentView === 'file-manager'} onClick={() => onViewChange('file-manager')} darkMode={darkMode} />
-            </div>
-          </div>
+            </nav>
 
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Track</p>
-        <nav className="space-y-1">
-          <div 
-            onClick={() => onViewChange('live-tracking')}
-            className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all ${currentView === 'live-tracking' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <div className="flex items-center gap-3">
-              <Activity size={18} />
-              <span className="text-sm font-medium">Live Tracking</span>
-            </div>
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-          </div>
-          <div 
-            onClick={() => onViewChange('leave')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'leave' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <Umbrella size={18} />
-            <span className="text-sm font-medium">Leave</span>
-          </div>
-          <div 
-            onClick={() => onViewChange('attendance')}
-            className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'attendance' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
-          >
-            <UserCheck size={18} />
-            <span className="text-sm font-medium">Attendance</span>
-          </div>
-        </nav>
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Manage</p>
-        <nav className="space-y-1">
-          <div 
-            onClick={() => onViewChange('projects')}
-            className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'projects' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-          >
-            <Briefcase size={18} />
-            <span className="text-sm font-medium">Projects</span>
-          </div>
-        </nav>
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8">Workforce</p>
-        <nav className="space-y-1">
-          {isAdmin && (
-            <>
+            <p className={`text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 mt-8 ${collapsed ? 'text-center' : ''}`}>
+              {collapsed ? '...' : 'Workforce'}
+            </p>
+            <nav className="space-y-1">
               <div 
                 onClick={() => onViewChange('employees')}
-                className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'employees' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'employees' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
               >
-                <User size={18} />
-                <span className="text-sm font-medium">Employees</span>
+                <User size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Employees</span>}
               </div>
               <div 
                 onClick={() => onViewChange('teams')}
-                className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'teams' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'teams' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
               >
-                <Users size={18} />
-                <span className="text-sm font-medium">Teams</span>
+                <Users size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Teams</span>}
               </div>
               <div 
                 onClick={() => onViewChange('clients')}
-                className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'clients' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'clients' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
               >
-                <Users size={18} />
-                <span className="text-sm font-medium">Clients</span>
+                <Users size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Clients</span>}
               </div>
-            </>
-          )}
-
-          <div 
-            onClick={() => onViewChange('activity-logs')}
-            className={`flex items-center gap-3 p-2 text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black rounded-lg cursor-pointer ${currentView === 'activity-logs' ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-          >
-            <List size={18} />
-            <span className="text-sm font-medium">Activity Logs</span>
-          </div>
-        </nav>
+              <div 
+                onClick={() => onViewChange('activity-logs')}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'activity-logs' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+              >
+                <List size={18} className="shrink-0" />
+                {!collapsed && <span className="text-sm font-medium">Activity Logs</span>}
+              </div>
+            </nav>
+          </>
+        )}
 
 
         {!isAuthenticated && (
@@ -240,7 +219,7 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
             <nav className="space-y-1">
               <div 
                 onClick={() => onViewChange('register')}
-                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'register' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:bg-black')}`}
+                className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${currentView === 'register' ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')}`}
               >
                 <UserPlus size={18} />
                 <span className="text-sm font-medium">Register</span>
@@ -265,9 +244,6 @@ export default function Sidebar({ currentView, onViewChange }: { currentView: st
                 </div>
               </div>
             </nav>
-          </>
-        )}
-
           </>
         )}
       </div>
@@ -296,14 +272,29 @@ function NavItem({ label, active = false, onClick, darkMode = false }: { label: 
   );
 }
 
-function SidebarItem({ icon, label, active = false, onClick, darkMode = false }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, darkMode?: boolean }) {
+function SidebarItem({ 
+  icon, 
+  label, 
+  active = false, 
+  onClick, 
+  darkMode = false,
+  collapsed = false
+}: { 
+  icon: React.ReactNode, 
+  label: string, 
+  active?: boolean, 
+  onClick?: () => void, 
+  darkMode?: boolean,
+  collapsed?: boolean
+}) {
   return (
     <div 
       onClick={onClick}
-      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${active ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 dark:text-gray-400 hover:bg-white dark:bg-black')}`}
+      className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all ${active ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-black' : 'text-gray-600 hover:bg-white')} ${collapsed ? 'justify-center' : ''}`}
+      title={collapsed ? label : ''}
     >
-      {icon}
-      <span className="text-sm font-medium">{label}</span>
+      <div className="shrink-0">{icon}</div>
+      {!collapsed && <span className="text-sm font-medium">{label}</span>}
     </div>
   );
 }

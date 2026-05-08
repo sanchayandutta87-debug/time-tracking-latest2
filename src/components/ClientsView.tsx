@@ -9,7 +9,7 @@ import { useAppContext } from '../context/AppContext';
 import AddClientModal from './AddClientModal';
 
 export default function ClientsView() {
-  const { darkMode } = useAppContext();
+  const { darkMode, showToast } = useAppContext();
   const [clients, setClients] = React.useState<any[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -101,7 +101,7 @@ export default function ClientsView() {
       fetchClients();
     } catch (error) {
       console.error('Error saving client:', error);
-      alert('Error saving client: ' + (error as any).message);
+      showToast('Error saving client: ' + (error as any).message, 'error');
     }
   };
 
@@ -162,7 +162,7 @@ export default function ClientsView() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {clientStats.map((stat, i) => (
-          <div key={i} className={`${darkMode ? 'bg-[#0A0A0B]/80 border-white/5 shadow-2xl' : 'bg-white border-gray-100 shadow-sm'} p-6 rounded-xl border relative overflow-hidden group transition-all`}>
+          <div key={i} className={`${darkMode ? 'bg-black border-gray-800 shadow-2xl' : 'bg-white border-gray-100 shadow-sm'} p-6 rounded-xl border relative overflow-hidden group transition-all`}>
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-xs font-bold text-gray-400 mb-1 tracking-wider uppercase">{stat.title}</p>
@@ -185,7 +185,7 @@ export default function ClientsView() {
 
       {/* Filters & Actions */}
       <div className="flex flex-col lg:flex-row justify-between items-center gap-4 mb-6">
-        <div className={`${darkMode ? 'bg-[#0A0A0B]/60 border-white/5' : 'bg-white border-gray-200'} flex items-center gap-2 border rounded-lg px-3 py-2.5 w-full lg:w-80 shadow-sm transition-all`}>
+        <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'} flex items-center gap-2 border rounded-lg px-3 py-2.5 w-full lg:w-80 shadow-sm transition-all`}>
           <Search className="text-gray-400" size={18} />
           <input 
             type="text" 
@@ -195,7 +195,7 @@ export default function ClientsView() {
         </div>
         
         <div className="flex items-center gap-3 w-full lg:w-auto">
-          <div className={`${darkMode ? 'bg-[#0A0A0B]/60 border-white/5' : 'bg-white border-gray-200'} flex border rounded-lg p-1 shadow-sm`}>
+          <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-200'} flex border rounded-lg p-1 shadow-sm`}>
             <button className={`p-1.5 ${darkMode ? 'bg-blue-600 text-white' : 'bg-gray-900 text-white'} rounded-md`}>
               <List size={18} />
             </button>
@@ -204,7 +204,7 @@ export default function ClientsView() {
             </button>
           </div>
 
-          <button className={`${darkMode ? 'bg-[#0A0A0B]/60 border-white/5 text-gray-300 hover:bg-white/5' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'} border px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-all`}>
+          <button className={`${darkMode ? 'bg-black border-gray-800 text-gray-300 hover:bg-gray-900' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'} border px-4 py-2.5 rounded-lg text-sm font-bold shadow-sm flex items-center gap-2 transition-all`}>
             <ArrowUpDown size={16} /> Sort By : Newest
           </button>
           
@@ -221,11 +221,11 @@ export default function ClientsView() {
       </div>
 
       {/* Table Container */}
-      <div className={`${darkMode ? 'bg-[#0A0A0B]/80 border-white/5' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden transition-all`}>
+      <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} rounded-xl border shadow-sm overflow-hidden transition-all`}>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className={`border-b ${darkMode ? 'border-white/5 bg-white/[0.02]' : 'border-gray-50 bg-gray-50/50'}`}>
+              <tr className={`border-b ${darkMode ? 'border-gray-800 bg-black' : 'border-gray-50 bg-gray-50/50'}`}>
                 <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>Client</th>
                 <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>Company Name</th>
                 <th className={`px-6 py-4 text-sm font-bold ${darkMode ? 'text-gray-300' : 'text-gray-800'}`}>Email Address</th>
@@ -236,7 +236,7 @@ export default function ClientsView() {
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className={`divide-y ${darkMode ? 'divide-white/5' : 'divide-gray-50'}`}>
+            <tbody className={`divide-y ${darkMode ? 'divide-gray-800' : 'divide-gray-50'}`}>
               {clients.map((client, i) => (
                 <tr key={i} className={`hover:bg-blue-50/30 dark:hover:bg-blue-500/[0.02] transition-colors group`}>
                   <td className="px-6 py-4">
@@ -248,7 +248,7 @@ export default function ClientsView() {
                           className="w-10 h-10 rounded-full object-cover"
                           referrerPolicy="no-referrer"
                         />
-                        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 ${darkMode ? 'border-[#0A0A0B]' : 'border-white'} rounded-full`}></div>
+                        <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 ${darkMode ? 'border-black' : 'border-white'} rounded-full`}></div>
                       </div>
                       <div>
                         <p className={`text-sm font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{client.name}</p>

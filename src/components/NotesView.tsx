@@ -3,6 +3,7 @@ import {
   ChevronRight, Plus, Mail, Star, Trash2, FileText, 
   MoreVertical, ChevronDown, Settings 
 } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
 
 const navItems = [
   { icon: <Mail size={18} />, label: 'All Notes', count: 6, active: true },
@@ -117,31 +118,33 @@ const notes = [
 ];
 
 export default function NotesView() {
+  const { darkMode } = useAppContext();
+
   return (
-    <div className="flex flex-col h-full bg-gray-50/30">
+    <div className={`flex flex-col h-full ${darkMode ? 'bg-transparent text-white' : 'bg-gray-50/30 text-gray-800'}`}>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-xl font-bold text-gray-800">Notes</h1>
+        <h1 className={`text-xl font-bold ${darkMode ? 'text-white' : 'text-gray-800'}`}>Notes</h1>
         <div className="flex items-center gap-2 text-sm text-gray-400">
-          <span>Home</span>
+          <span className="hover:text-blue-600 cursor-pointer">Home</span>
           <ChevronRight size={14} />
           <span>Applications</span>
           <ChevronRight size={14} />
-          <span className="text-gray-600">Notes</span>
+          <span className={`${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>Notes</span>
         </div>
       </div>
 
       <div className="flex gap-6 h-full overflow-hidden">
         {/* Left Sidebar */}
         <div className="w-64 shrink-0 flex flex-col gap-6">
-          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-            <button className="w-full bg-blue-600 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-blue-100 mb-6 hover:bg-blue-700 transition-all">
+          <div className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm`}>
+            <button className="w-full bg-blue-600 text-white py-2.5 rounded-lg flex items-center justify-center gap-2 text-sm font-semibold shadow-lg shadow-blue-100 dark:shadow-none mb-6 hover:bg-blue-700 transition-all">
               <Plus size={18} /> Add Task
             </button>
 
             <nav className="space-y-1 mb-8">
               {navItems.map((item) => (
-                <div key={item.label} className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors ${item.active ? 'bg-blue-50 text-blue-600 font-bold' : 'text-gray-500 hover:bg-gray-50'}`}>
+                <div key={item.label} className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-colors ${item.active ? (darkMode ? 'bg-blue-600/10 text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'text-gray-400 hover:bg-gray-900' : 'text-gray-500 hover:bg-gray-50')} font-bold`}>
                   <div className="flex items-center gap-3">
                     {item.icon}
                     <span className="text-sm">{item.label}</span>
@@ -155,7 +158,7 @@ export default function NotesView() {
               ))}
             </nav>
 
-            <div className="pt-6 border-t border-gray-100">
+            <div className={`pt-6 border-t ${darkMode ? 'border-gray-800' : 'border-gray-100'}`}>
               <div className="flex items-center justify-between mb-4 cursor-pointer">
                 <h4 className="text-sm font-bold text-gray-400">Labels</h4>
                 <ChevronDown size={16} className="text-gray-400" />
@@ -164,7 +167,7 @@ export default function NotesView() {
                 {labels.map((label) => (
                   <div key={label.label} className="flex items-center gap-3 cursor-pointer group">
                     <div className={`w-2 h-2 rounded-full ${label.color}`} />
-                    <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors font-medium">{label.label}</span>
+                    <span className={`text-sm ${darkMode ? 'text-gray-400 group-hover:text-white' : 'text-gray-600 group-hover:text-gray-900'} transition-colors font-medium`}>{label.label}</span>
                   </div>
                 ))}
               </div>
@@ -183,29 +186,29 @@ export default function NotesView() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {notes.map((note, i) => (
-              <div key={i} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col group hover:border-blue-200 transition-all">
+              <div key={i} className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col group hover:border-blue-500 transition-all`}>
                 <div className="flex justify-between items-start mb-4">
                   <span className={`px-2.5 py-0.5 rounded text-[10px] font-bold text-white uppercase ${note.priorityColor}`}>
                     {note.priority}
                   </span>
-                  <button className="text-gray-300 hover:text-gray-600"><MoreVertical size={16} /></button>
+                  <button className={`${darkMode ? 'text-gray-600 hover:text-gray-300' : 'text-gray-300 hover:text-gray-600'}`}><MoreVertical size={16} /></button>
                 </div>
                 
-                <h3 className="font-bold text-gray-800 text-base mb-2">{note.title}</h3>
-                <p className="text-sm text-gray-400 font-medium mb-6 line-clamp-2">
+                <h3 className={`font-bold ${darkMode ? 'text-white' : 'text-gray-800'} text-base mb-2`}>{note.title}</h3>
+                <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-400'} font-medium mb-6 line-clamp-2`}>
                   {note.description}
                 </p>
 
                 <div className="mt-auto flex justify-between items-center">
                   <div className="flex gap-2">
-                    <button className={`p-2 rounded-lg border border-gray-100 transition-colors ${note.starred ? 'bg-yellow-50 border-yellow-100' : 'hover:bg-gray-50'}`}>
+                    <button className={`p-2 rounded-lg border ${darkMode ? 'border-gray-800' : 'border-gray-100'} transition-colors ${note.starred ? (darkMode ? 'bg-yellow-500/10 border-yellow-500/30' : 'bg-yellow-50 border-yellow-100') : (darkMode ? 'hover:bg-gray-900' : 'hover:bg-gray-50')}`}>
                       <Star size={16} className={note.starred ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} />
                     </button>
-                    <button className="p-2 rounded-lg border border-gray-100 hover:bg-red-50 hover:border-red-100 transition-colors">
-                      <Trash2 size={16} className="text-gray-400 hover:text-red-500" />
+                    <button className={`p-2 rounded-lg border ${darkMode ? 'border-gray-800 hover:bg-red-500/10 hover:border-red-500/30' : 'border-gray-100 hover:bg-red-50 hover:border-red-100'} transition-colors group/trash`}>
+                      <Trash2 size={16} className={`transition-colors ${darkMode ? 'text-gray-400 group-hover/trash:text-red-500' : 'text-gray-400 group-hover/trash:text-red-500'}`} />
                     </button>
                   </div>
-                  <img src={note.avatar} alt="user" className="w-8 h-8 rounded-lg border border-gray-100" referrerPolicy="no-referrer" />
+                  <img src={note.avatar} alt="user" className={`w-8 h-8 rounded-lg border ${darkMode ? 'border-gray-800' : 'border-gray-100'}`} referrerPolicy="no-referrer" />
                 </div>
               </div>
             ))}

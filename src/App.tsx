@@ -44,7 +44,7 @@ import LowActivityView from './components/LowActivityView';
 import IdleTimeReportView from './components/IdleTimeReportView';
 import OvertimeLimitView from './components/OvertimeLimitView';
 import WorkingOnWeekendsView from './components/WorkingOnWeekendsView';
-import { Search, Plus, Box, Users, UserCheck, UserPlus, List, Grid, ChevronRight, Menu, Bell, Moon, Sun, Globe, Settings as SettingsIcon, LogOut, User, Clock, X, Activity, Umbrella } from 'lucide-react';
+import { Search, Plus, Box, Users, UserCheck, UserPlus, List, Grid, ChevronRight, Menu, Bell, Moon, Sun, Globe, Settings as SettingsIcon, LogOut, User, Clock, X, Activity, Umbrella, CheckCircle2, Info } from 'lucide-react';
 
 const stats = [
   { title: 'Total Projects', value: '2520', change: '+15.2%', color: '#3b82f6', icon: <Box size={18} />, data: [{value: 10}, {value: 20}, {value: 15}, {value: 30}, {value: 25}, {value: 35}] },
@@ -60,23 +60,10 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading, updatePresence } = useAuth();
-  const { darkMode, setDarkMode } = useAppContext();
+  const { darkMode, setDarkMode, toast, showToast, hideToast, confirm, askConfirm, hideConfirm } = useAppContext();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  const [currentView, setCurrentView] = useState(() => {
-    // 1. Check URL first
-    const path = decodeURIComponent(window.location.pathname.replace('/', '')).replace(' ', '-');
-    if (path && path !== '') {
-      return path;
-    }
-
-    // 2. Restore session on page refresh
-    const session = localStorage.getItem('tt_session');
-    if (session) {
-      const mode = localStorage.getItem('dashboardMode') || 'admin';
-      return mode === 'user' ? 'user-dashboard' : 'admin-dashboard';
-    }
-    return 'login';
-  });
+  const [currentView, setCurrentView] = useState('login');
 
   // Sync URL -> currentView
   useEffect(() => {
@@ -90,7 +77,6 @@ export default function App() {
 
   // Sync currentView -> URL + Role Protection + Auth Guards
   useEffect(() => {
-    if (authLoading) return;
 
     const currentPath = location.pathname.replace('/', '') || 'login';
     
@@ -221,37 +207,28 @@ export default function App() {
     return 'text-red-500';
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Loading your session...</p>
-          <button 
-            onClick={() => {
-              // Manual override: force loading off
-              setIsLoading(false);
-            }}
-            className="mt-4 text-xs text-gray-400 hover:text-blue-500 underline"
-          >
-            Taking too long? Click here to skip.
-          </button>
-        </div>
-      </div>
-    );
+  if (authLoading && currentView !== 'register') {
+    return <LoginView onViewChange={setCurrentView} />;
   }
 
   return (
-    <div className={`flex min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-white dark:bg-black text-gray-900 dark:text-white'}`} dir={currentView === 'rtl-support' ? 'rtl' : 'ltr'}>
+    <div className={`flex min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`} dir={currentView === 'rtl-support' ? 'rtl' : 'ltr'}>
       {currentView !== 'hidden-menu' && currentView !== 'full-width' && currentView !== 'rtl-support' && currentView !== 'login' && currentView !== 'register' && (
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+        <Sidebar currentView={currentView} onViewChange={setCurrentView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
       )}
       
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Navigation Bar */}
         {currentView !== 'login' && currentView !== 'register' && (
-          <header className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800'} border-b h-16 flex items-center justify-between px-6 shrink-0 transition-colors duration-500 relative z-30`}>
+          <header className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} border-b h-16 flex items-center justify-between px-6 shrink-0 transition-colors duration-500 relative z-30`}>
             <div className="flex items-center gap-4 flex-1">
+              <button 
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-900 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
+                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              >
+                <Menu size={20} />
+              </button>
               {(currentView === 'hidden-menu' || currentView === 'full-width' || currentView === 'rtl-support' || currentView === 'dark-mode') && (
                 <div className={`flex items-center gap-2 ${currentView === 'rtl-support' ? 'ml-4' : 'mr-4'}`}>
                   <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
@@ -260,21 +237,15 @@ export default function App() {
                   <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800 dark:text-white'}`}>CodeXConquer</span>
                 </div>
               )}
-              <button 
-                onClick={() => (currentView === 'hidden-menu' || currentView === 'full-width' || currentView === 'rtl-support' || currentView === 'dark-mode') && setCurrentView('mini-sidebar')}
-                className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-black text-gray-400' : 'hover:bg-white dark:bg-black text-gray-500 dark:text-gray-400'}`}
-              >
-                <Menu size={20} />
-              </button>
               <div className="relative w-64 group">
                 <Search className={`absolute ${currentView === 'rtl-support' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-blue-500`} size={18} />
                 <input 
                   ref={searchInputRef}
                   type="text" 
                   placeholder="Search Keyword" 
-                  className={`w-full border rounded-lg py-2 ${currentView === 'rtl-support' ? 'pr-10 pl-16' : 'pl-10 pr-16'} text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${darkMode ? 'bg-black border-gray-800 text-white placeholder-gray-500' : 'bg-white dark:bg-black border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white'}`} 
+                  className={`w-full border rounded-lg py-2 ${currentView === 'rtl-support' ? 'pr-10 pl-16' : 'pl-10 pr-16'} text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${darkMode ? 'bg-black border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-200 text-gray-900'}`} 
                 />
-                <span className={`absolute ${currentView === 'rtl-support' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase pointer-events-none transition-colors ${darkMode ? 'text-gray-400 border-gray-700 bg-black' : 'text-gray-400 border-gray-200 dark:border-gray-700 bg-white dark:bg-black'}`}>ctrl + K</span>
+                <span className={`absolute ${currentView === 'rtl-support' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase pointer-events-none transition-colors ${darkMode ? 'text-gray-400 border-gray-700 bg-black' : 'text-gray-400 border-gray-200 bg-white'}`}>ctrl + K</span>
               </div>
             </div>
             
@@ -302,7 +273,7 @@ export default function App() {
               {/* Theme Toggle */}
               <button 
                 onClick={() => setDarkMode(!darkMode)}
-                className={`p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${darkMode ? 'bg-black border border-gray-700 text-blue-300' : 'bg-[#f4f6f9] border border-transparent text-slate-500 hover:bg-[#eef1f5] hover:text-slate-700'}`}
+                className={`p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${darkMode ? 'bg-black border border-gray-700 text-blue-300' : 'bg-[#f4f6f9] border border-transparent text-gray-500 hover:bg-[#eef1f5] hover:text-gray-700'}`}
                 title="Toggle Dark Mode"
               >
                 {darkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
@@ -312,7 +283,7 @@ export default function App() {
               <div className="relative">
                 <button 
                   onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); }}
-                  className={`p-2 rounded-lg relative transition-colors hover:scale-105 active:scale-95 ${isNotificationsOpen ? (darkMode ? 'bg-black text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'hover:bg-black text-gray-400' : 'hover:bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400')}`}
+                  className={`p-2 rounded-lg relative transition-colors hover:scale-105 active:scale-95 ${isNotificationsOpen ? (darkMode ? 'bg-black text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'hover:bg-black text-gray-400' : 'hover:bg-gray-100 text-gray-500')}`}
                 >
                   <Bell size={20} className={isNotificationsOpen ? 'animate-swing' : ''} />
                   <span className={`absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 ${darkMode ? 'border-black' : 'border-white'} rounded-full ${notifications.filter(n => !n.read).length > 0 ? 'animate-pulse' : 'hidden'}`}></span>
@@ -322,7 +293,7 @@ export default function App() {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsNotificationsOpen(false)} />
                     <div className={`absolute top-full right-0 mt-3 w-96 rounded-2xl border shadow-2xl z-50 overflow-hidden transform origin-top transition-all animate-fade-in-down ${darkMode ? 'bg-black border-gray-800' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800'}`}>
-                      <div className={`p-4 border-b flex justify-between items-center ${darkMode ? 'border-gray-800 bg-black' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-black/50'}`}>
+                      <div className={`p-4 border-b flex justify-between items-center ${darkMode ? 'border-gray-800 bg-black' : 'border-gray-100 bg-white'}`}>
                         <div className="flex items-center gap-2">
                           <h3 className="font-bold text-sm">Notifications</h3>
                           {notifications.filter(n => !n.read).length > 0 && (
@@ -405,7 +376,7 @@ export default function App() {
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setIsProfileOpen(false)} />
                     <div className={`absolute top-full right-0 mt-3 w-56 rounded-2xl border shadow-2xl z-50 overflow-hidden transform origin-top transition-all animate-fade-in-down ${darkMode ? 'bg-black border-gray-800' : 'bg-white dark:bg-black border-gray-100 dark:border-gray-800'}`}>
-                      <div className={`p-4 border-b text-center ${darkMode ? 'border-gray-800 bg-black' : 'border-gray-100 dark:border-gray-800 bg-white dark:bg-black/50'}`}>
+                      <div className={`p-4 border-b text-center ${darkMode ? 'border-gray-800 bg-black' : 'border-gray-100 bg-white'}`}>
                         <div className="w-16 h-16 rounded-full mx-auto mb-3 border-4 border-white dark:border-gray-800 shadow-sm overflow-hidden bg-blue-600 flex items-center justify-center">
                           {currentUser?.avatar ? (
                             <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -419,19 +390,16 @@ export default function App() {
                       <div className="p-2 space-y-1">
                         <button 
                           onClick={() => { setCurrentView('profile'); setIsProfileOpen(false); }}
-                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-900'}`}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                         >
                           <User size={16} /> My Profile
                         </button>
                         <button 
-                          disabled
-                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium opacity-50 cursor-not-allowed ${darkMode ? 'text-gray-500 bg-gray-900/50' : 'text-gray-400 bg-gray-50'}`}
+                          onClick={() => { setCurrentView('settings'); setIsProfileOpen(false); }}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
                         >
                           <div className="flex items-center gap-3">
                             <SettingsIcon size={16} /> Account Settings
-                          </div>
-                          <div className="bg-red-500/10 text-red-500 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
-                            Locked
                           </div>
                         </button>
                       </div>
@@ -587,6 +555,62 @@ export default function App() {
         
 
       </div>
+
+      {/* Global Toast Notification */}
+      {toast.show && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100] animate-fade-in-up">
+          <div className={`flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border ${
+            toast.type === 'success' ? 'bg-emerald-500/90 border-emerald-400 text-white' :
+            toast.type === 'error' ? 'bg-rose-500/90 border-rose-400 text-white' :
+            toast.type === 'warning' ? 'bg-amber-500/90 border-amber-400 text-white' :
+            'bg-blue-500/90 border-blue-400 text-white'
+          }`}>
+            {toast.type === 'success' ? <CheckCircle2 size={20} /> :
+             toast.type === 'error' ? <X size={20} /> :
+             toast.type === 'warning' ? <Bell size={20} /> :
+             <Info size={20} />}
+            <span className="text-sm font-black uppercase tracking-widest">{toast.message}</span>
+            <button onClick={hideToast} className="ml-4 p-1 hover:bg-white/20 rounded-lg transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Global Confirmation Modal */}
+      {confirm.show && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={hideConfirm} />
+          <div className="bg-white dark:bg-black w-full max-w-md rounded-[32px] border border-gray-100 dark:border-gray-800 shadow-2xl overflow-hidden relative z-10 animate-scale-in">
+            <div className="p-8">
+              <div className="w-16 h-16 rounded-3xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-6 mx-auto">
+                <Bell size={32} />
+              </div>
+              <h3 className="text-xl font-black text-gray-800 dark:text-white text-center mb-2 uppercase tracking-tight">{confirm.title}</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-center text-sm font-medium leading-relaxed">
+                {confirm.message}
+              </p>
+            </div>
+            <div className="flex p-4 gap-3 border-t border-gray-50 dark:border-gray-800 bg-gray-50/50 dark:bg-white/5">
+              <button 
+                onClick={hideConfirm}
+                className="flex-1 px-6 py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  confirm.onConfirm();
+                  hideConfirm();
+                }}
+                className="flex-1 px-6 py-3.5 rounded-2xl bg-blue-600 text-white text-sm font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
