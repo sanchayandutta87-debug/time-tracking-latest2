@@ -339,10 +339,10 @@ export default function App() {
 
 
               
-              {/* Theme Toggle - Visible on desktop header */}
+              {/* Theme Toggle */}
               <button 
                 onClick={() => setDarkMode(!darkMode)}
-                className={`hidden sm:flex p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 items-center justify-center ${darkMode ? 'bg-black border border-gray-700 text-blue-300' : 'bg-[#f4f6f9] border border-transparent text-gray-500 hover:bg-[#eef1f5] hover:text-gray-700'}`}
+                className={`p-2 lg:p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${darkMode ? 'text-blue-300 sm:bg-black sm:border sm:border-gray-700' : 'text-gray-500 sm:bg-[#f4f6f9] sm:border sm:border-transparent hover:sm:bg-[#eef1f5] hover:sm:text-gray-700'}`}
                 title="Toggle Dark Mode"
               >
                 {darkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
