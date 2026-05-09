@@ -339,7 +339,7 @@ export default function App() {
 
 
               
-              {/* Theme Toggle - Hidden on mobile */}
+              {/* Theme Toggle - Visible on desktop header */}
               <button 
                 onClick={() => setDarkMode(!darkMode)}
                 className={`hidden sm:flex p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 items-center justify-center ${darkMode ? 'bg-black border border-gray-700 text-blue-300' : 'bg-[#f4f6f9] border border-transparent text-gray-500 hover:bg-[#eef1f5] hover:text-gray-700'}`}
@@ -457,6 +457,19 @@ export default function App() {
                         <p className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-gray-500 dark:text-gray-400'}`}>{currentUser?.email || ''}</p>
                       </div>
                       <div className="p-2 space-y-1">
+                        <button 
+                          onClick={() => setDarkMode(!darkMode)}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {darkMode ? <Sun size={16} /> : <Moon size={16} />} 
+                            {darkMode ? 'Light Mode' : 'Dark Mode'}
+                          </div>
+                          <div className={`w-8 h-4 rounded-full relative transition-colors ${darkMode ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                            <div className={`absolute top-1 w-2 h-2 rounded-full bg-white transition-all ${darkMode ? 'right-1' : 'left-1'}`}></div>
+                          </div>
+                        </button>
+
                         <button 
                           onClick={() => { setCurrentView('profile'); setIsProfileOpen(false); }}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${darkMode ? 'text-gray-300 hover:bg-gray-900 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
