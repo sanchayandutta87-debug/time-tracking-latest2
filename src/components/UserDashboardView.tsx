@@ -328,16 +328,16 @@ export default function UserDashboardView({ isRTL = false, onViewChange }: { isR
   return (
     <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-6 px-6 pt-4 shrink-0">
+      <div className="flex justify-between items-center mb-6 px-4 lg:px-6 pt-4 shrink-0">
         <div>
           <h1 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'}`}>User Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-1">Welcome back! Here's your work overview.</p>
+          <p className="text-xs lg:text-sm text-gray-400 mt-1">Welcome back! Here's your work overview.</p>
         </div>
       </div>
 
-      <div className="px-6 pb-12 space-y-6">
+      <div className="px-4 lg:px-6 pb-12 space-y-6">
         {/* Stat Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <div className={`${isDarkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} p-6 rounded-xl border shadow-sm flex flex-col`}>
             <div className="flex justify-between items-start mb-4">
               <div>

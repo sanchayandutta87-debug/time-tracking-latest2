@@ -400,13 +400,13 @@ export default function AdminDashboardView({ isRTL = false }: { isRTL?: boolean 
   return (
     <div className={`flex flex-col h-full overflow-y-auto ${isDarkMode ? 'bg-black' : 'bg-gray-50'}`}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-10 px-6 pt-4 shrink-0">
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">
+      <div className="flex justify-between items-center mb-6 lg:mb-10 px-4 lg:px-6 pt-4 shrink-0">
+        <h1 className="text-2xl lg:text-3xl font-black text-gray-900 dark:text-white tracking-tight">
           Admin Dashboard
         </h1>
       </div>
 
-      <div className="px-6 pb-12 space-y-6">
+      <div className="px-4 lg:px-6 pb-12 space-y-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, i) => (

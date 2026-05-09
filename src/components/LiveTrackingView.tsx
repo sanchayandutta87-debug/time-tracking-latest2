@@ -181,24 +181,24 @@ export default function LiveTrackingView() {
   });
 
   return (
-    <div className="p-8 bg-transparent min-h-full">
+    <div className="p-4 lg:p-8 bg-transparent min-h-full">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Live Tracking</h1>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-8 border-b border-gray-200 dark:border-gray-800 mb-8">
+      <div className="flex items-center gap-4 lg:gap-8 border-b border-gray-200 dark:border-gray-800 mb-8 overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setCurrentTab('live')}
-          className={`flex items-center gap-2 pb-4 font-bold transition-all ${currentTab === 'live' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200'}`}
+          className={`flex items-center gap-2 pb-4 font-bold transition-all whitespace-nowrap ${currentTab === 'live' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200'}`}
         >
           <Sun size={18} />
           Live Tracking
         </button>
         <button 
           onClick={() => setCurrentTab('recent')}
-          className={`flex items-center gap-2 pb-4 font-bold transition-all ${currentTab === 'recent' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200'}`}
+          className={`flex items-center gap-2 pb-4 font-bold transition-all whitespace-nowrap ${currentTab === 'recent' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200'}`}
         >
           <Clock size={18} />
           Last 5 Minutes
@@ -241,66 +241,67 @@ export default function LiveTrackingView() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-50 dark:border-gray-800">
-                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Project & Task</th>
-                  <th className="px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200"></th>
+                  <th className="px-4 lg:px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Project & Task</th>
+                  <th className="hidden sm:table-cell px-4 lg:px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Clock In</th>
+                  <th className="hidden md:table-cell px-4 lg:px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Status</th>
+                  <th className="px-4 lg:px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200">Activity</th>
+                  <th className="px-4 lg:px-6 py-4 text-sm font-bold text-gray-800 dark:text-gray-200"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {filteredUsers.length > 0 ? filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors group">
-                    <td className="px-6 py-4">
+                    <td className="px-4 lg:px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative">
+                        <div className="relative shrink-0">
                           <img 
                             src={user.avatar} 
                             alt={user.name} 
-                            className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800"
+                            className="w-8 h-8 lg:w-10 lg:h-10 rounded-full object-cover border border-gray-100 dark:border-gray-800"
                             referrerPolicy="no-referrer"
                           />
-                          <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 border-2 border-white dark:border-gray-900 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-800'}`}></div>
+                          <div className={`absolute bottom-0 right-0 w-2 h-2 lg:w-2.5 lg:h-2.5 border-2 border-white dark:border-gray-900 rounded-full ${user.isOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-800'}`}></div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900 dark:text-white">{user.name}</p>
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{user.role}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{user.name}</p>
+                          <p className="text-[10px] lg:text-xs text-blue-600 dark:text-blue-400 font-medium truncate">{user.role}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">{user.clockIn}</span>
+                    <td className="hidden sm:table-cell px-4 lg:px-6 py-4">
+                      <span className="text-xs lg:text-sm text-gray-500 dark:text-gray-400 font-medium whitespace-nowrap">{user.clockIn}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden md:table-cell px-4 lg:px-6 py-4">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${user.isOnline ? 'bg-green-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-700'}`}></div>
-                        <span className={`text-xs font-bold ${user.isOnline ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                        <span className={`text-[10px] lg:text-xs font-bold ${user.isOnline ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
                           {user.isOnline ? 'ACTIVE' : 'OFFLINE'}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 dark:text-white">{user.project}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">{user.task}</p>
+                    <td className="px-4 lg:px-6 py-4">
+                      <div className="min-w-0">
+                        <p className="text-xs lg:text-sm font-bold text-gray-900 dark:text-white truncate">{user.project}</p>
+                        <p className="text-[10px] lg:text-xs text-gray-400 dark:text-gray-500 truncate">{user.task}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 lg:px-6 py-4 text-right">
                       <button 
                         disabled={takingScreenshot === user.id}
                         onClick={() => handleTakeScreenshot(user.id, user.name)}
-                        className={`flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-bold transition-all ${
+                        className={`flex items-center justify-center p-2 lg:px-4 lg:py-2 border border-gray-200 dark:border-gray-800 rounded-lg text-xs font-bold transition-all ${
                           takingScreenshot === user.id 
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
+                        title="Take Screenshot"
                       >
                         {takingScreenshot === user.id ? (
-                          <>
-                            <Loader2 size={14} className="animate-spin" />
-                            Capturing...
-                          </>
+                          <Loader2 size={14} className="animate-spin" />
                         ) : (
                           <>
                             <Camera size={14} />
-                            Take Screenshot
+                            <span className="hidden lg:inline ml-2">Take Screenshot</span>
                           </>
                         )}
                       </button>

@@ -262,10 +262,10 @@ export default function FileManagerView() {
       />
       
       {/* Header with Glass Effect */}
-      <div className="flex justify-between items-end mb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8 lg:mb-10">
         <div>
-          <h1 className="text-3xl font-black tracking-tight text-gray-900 dark:text-white mb-2">File Manager</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Manage and organize your digital workspace</p>
+          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-gray-900 dark:text-white mb-2">File Manager</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs lg:text-sm font-medium">Manage and organize your digital workspace</p>
         </div>
       </div>
 

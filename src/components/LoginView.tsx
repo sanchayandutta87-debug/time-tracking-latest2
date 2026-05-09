@@ -91,7 +91,7 @@ const LoginView = ({ onViewChange }: { onViewChange?: (view: string) => void }) 
                     </div>
                 </div>
 
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 text-sm">
                     <label className="flex items-center gap-2 cursor-pointer group">
                         <input 
                             type="checkbox" 
@@ -157,9 +157,9 @@ const LoginView = ({ onViewChange }: { onViewChange?: (view: string) => void }) 
                     </p>
                 </div>
 
-                <div className="flex justify-center gap-4 text-[10px] text-gray-600 mt-6">
+                <div className="flex flex-wrap justify-center gap-4 text-[10px] text-gray-600 mt-6">
                     <a href="#" className="hover:text-gray-400 transition-colors duration-200">Privacy Policy</a>
-                    <span className="text-gray-700">·</span>
+                    <span className="text-gray-700 hidden sm:inline">·</span>
                     <a href="#" className="hover:text-gray-400 transition-colors duration-200">Terms of Service</a>
                 </div>
             </form>

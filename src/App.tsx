@@ -62,7 +62,21 @@ export default function App() {
   const location = useLocation();
   const { currentUser, isAuthenticated, logout, isLoading: authLoading, setIsLoading, updatePresence } = useAuth();
   const { darkMode, setDarkMode, toast, showToast, hideToast, confirm, askConfirm, hideConfirm } = useAppContext();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(window.innerWidth < 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      if (window.innerWidth < 1024) {
+        setSidebarCollapsed(true);
+      } else {
+        setSidebarCollapsed(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [currentView, setCurrentView] = useState('login');
 
@@ -255,14 +269,28 @@ export default function App() {
   return (
     <div className={`flex min-h-screen font-sans transition-colors duration-500 ${darkMode ? 'bg-black text-white' : 'bg-white text-gray-900'}`} dir={currentView === 'rtl-support' ? 'rtl' : 'ltr'}>
       {currentView !== 'hidden-menu' && currentView !== 'full-width' && currentView !== 'rtl-support' && currentView !== 'login' && currentView !== 'register' && (
-        <Sidebar currentView={currentView} onViewChange={setCurrentView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+        <>
+          {/* Mobile Sidebar Overlay - shows when sidebar is NOT collapsed on mobile */}
+          {!sidebarCollapsed && (
+            <div 
+              className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[45] transition-opacity duration-300"
+              onClick={() => setSidebarCollapsed(true)}
+            />
+          )}
+          <div className={`
+            fixed lg:relative inset-y-0 left-0 z-50 shadow-2xl lg:shadow-none transition-transform duration-300 transform
+            ${sidebarCollapsed ? '-translate-x-full lg:translate-x-0' : 'translate-x-0'}
+          `}>
+            <Sidebar currentView={currentView} onViewChange={setCurrentView} collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+          </div>
+        </>
       )}
       
       <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
         {/* Top Navigation Bar */}
         {currentView !== 'login' && currentView !== 'register' && (
-          <header className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} border-b h-16 flex items-center justify-between px-6 shrink-0 transition-colors duration-500 relative z-30`}>
-            <div className="flex items-center gap-4 flex-1">
+          <header className={`${darkMode ? 'bg-black border-gray-800' : 'bg-white border-gray-100'} border-b h-16 flex items-center justify-between px-4 lg:px-6 shrink-0 transition-colors duration-500 relative z-30`}>
+            <div className="flex items-center gap-2 lg:gap-4 flex-1 min-w-0">
               <button 
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 className={`p-2 rounded-lg transition-colors ${darkMode ? 'hover:bg-gray-900 text-gray-400' : 'hover:bg-gray-100 text-gray-500'}`}
@@ -278,15 +306,15 @@ export default function App() {
                   <span className={`text-lg font-bold ${darkMode ? 'text-white' : 'text-gray-800 dark:text-white'}`}>CodeXConquer</span>
                 </div>
               )}
-              <div className="relative w-64 group">
-                <Search className={`absolute ${currentView === 'rtl-support' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-blue-500`} size={18} />
+              <div className="relative flex-1 max-w-md group">
+                <Search className={`absolute ${currentView === 'rtl-support' ? 'right-3' : 'left-3'} top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-blue-500`} size={16} />
                 <input 
                   ref={searchInputRef}
                   type="text" 
                   placeholder="Search Keyword" 
-                  className={`w-full border rounded-lg py-2 ${currentView === 'rtl-support' ? 'pr-10 pl-16' : 'pl-10 pr-16'} text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${darkMode ? 'bg-black border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-200 text-gray-900'}`} 
+                  className={`w-full border rounded-xl py-2 ${currentView === 'rtl-support' ? 'pr-9 pl-4 lg:pl-16' : 'pl-9 pr-4 lg:pr-16'} text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 ${darkMode ? 'bg-black border-gray-800 text-white placeholder-gray-500' : 'bg-white border-gray-200 text-gray-900'}`} 
                 />
-                <span className={`absolute ${currentView === 'rtl-support' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase pointer-events-none transition-colors ${darkMode ? 'text-gray-400 border-gray-700 bg-black' : 'text-gray-400 border-gray-200 bg-white'}`}>ctrl + K</span>
+                <span className={`hidden lg:block absolute ${currentView === 'rtl-support' ? 'left-3' : 'right-3'} top-1/2 -translate-y-1/2 text-[10px] font-bold border px-1.5 py-0.5 rounded uppercase pointer-events-none transition-colors ${darkMode ? 'text-gray-400 border-gray-700 bg-black' : 'text-gray-400 border-gray-200 bg-white'}`}>ctrl + K</span>
               </div>
             </div>
             
@@ -311,17 +339,17 @@ export default function App() {
 
 
               
-              {/* Theme Toggle */}
+              {/* Theme Toggle - Hidden on mobile */}
               <button 
                 onClick={() => setDarkMode(!darkMode)}
-                className={`p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center ${darkMode ? 'bg-black border border-gray-700 text-blue-300' : 'bg-[#f4f6f9] border border-transparent text-gray-500 hover:bg-[#eef1f5] hover:text-gray-700'}`}
+                className={`hidden sm:flex p-2.5 rounded-xl transition-all hover:scale-105 active:scale-95 items-center justify-center ${darkMode ? 'bg-black border border-gray-700 text-blue-300' : 'bg-[#f4f6f9] border border-transparent text-gray-500 hover:bg-[#eef1f5] hover:text-gray-700'}`}
                 title="Toggle Dark Mode"
               >
                 {darkMode ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
               </button>
               
-              {/* Notifications Dropdown */}
-              <div className="relative">
+              {/* Notifications Dropdown - Hidden on small mobile */}
+              <div className="hidden sm:block relative">
                 <button 
                   onClick={() => { setIsNotificationsOpen(!isNotificationsOpen); setIsProfileOpen(false); }}
                   className={`p-2 rounded-lg relative transition-colors hover:scale-105 active:scale-95 ${isNotificationsOpen ? (darkMode ? 'bg-black text-blue-400' : 'bg-blue-50 text-blue-600') : (darkMode ? 'hover:bg-black text-gray-400' : 'hover:bg-gray-100 text-gray-500')}`}
@@ -469,8 +497,7 @@ export default function App() {
         )}
 
         {/* Main Content Area */}
-        {/* Main Content Area */}
-        <main className={`flex-1 overflow-y-auto transition-colors duration-500 ${['login', 'register'].includes(currentView) ? 'p-0' : 'p-8'}`}>
+        <main className={`flex-1 overflow-y-auto transition-colors duration-500 ${['login', 'register'].includes(currentView) ? 'p-0' : 'p-4 lg:p-8'}`}>
 
           {currentView === 'login' ? (
             <LoginView onViewChange={setCurrentView} />
