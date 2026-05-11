@@ -83,12 +83,16 @@ export default function App() {
   // Sync URL -> currentView
   useEffect(() => {
     const path = decodeURIComponent(location.pathname.replace('/', '')).replace(' ', '-');
-    if (path && path !== currentView) {
-      setCurrentView(path);
-    } else if (location.pathname === '/' && currentView === 'login') {
-      // Default to login if root and login
+    if (path) {
+      if (path !== currentView) setCurrentView(path);
+    } else {
+      // Handle root path /
+      const defaultView = isAuthenticated ? 
+        (currentUser?.role?.toLowerCase() === 'administrator' ? 'admin-dashboard' : 'user-dashboard') : 
+        'login';
+      if (currentView !== defaultView) setCurrentView(defaultView);
     }
-  }, [location.pathname]);
+  }, [location.pathname, isAuthenticated, currentUser?.role]);
 
   // Sync currentView -> URL + Role Protection + Auth Guards
   useEffect(() => {
@@ -103,20 +107,16 @@ export default function App() {
       currentPath 
     });
 
-    // 1. If NOT authenticated: Force login if trying to access protected views
     if (!isAuthenticated) {
       if (currentView !== 'login' && currentView !== 'register') {
         setCurrentView('login');
-        window.history.replaceState({}, '', '/login');
       }
     } 
-    // 2. If authenticated: Redirect away from login/register
     else {
       if (currentView === 'login' || currentView === 'register' || currentPath === 'login' || currentPath === 'register') {
         const role = currentUser?.role;
         const targetView = role?.toLowerCase() === 'administrator' ? 'admin-dashboard' : 'user-dashboard';
         setCurrentView(targetView);
-        window.history.replaceState({}, '', `/${targetView}`);
       }
 
       // 3. Role-based view protection: Only 'Administrator' can access admin views
@@ -128,10 +128,13 @@ export default function App() {
       }
     }
 
+    // 4. Final Sync: Update URL if it doesn't match currentView
     if (currentView !== currentPath && currentView !== '') {
-      navigate(`/${currentView}`, { replace: true });
+      // Only replace history when redirecting from root or performing an auth-related forced redirect
+      const isForcedRedirect = location.pathname === '/' || currentPath === 'login' || currentPath === 'register';
+      navigate(`/${currentView}`, { replace: isForcedRedirect });
     }
-  }, [currentView, navigate, currentUser?.role, isAuthenticated, authLoading, location.pathname]);
+  }, [currentView, navigate, currentUser?.role, isAuthenticated, location.pathname]);
 
   // Presence Update Loop
   useEffect(() => {
